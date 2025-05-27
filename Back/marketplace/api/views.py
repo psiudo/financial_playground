@@ -10,16 +10,23 @@ from .serializers import (
     MarketListingCreateSerializer,
     PurchaseSerializer,
 )
-from accounts.models import PointTransaction
+from accounts.models import PointTransaction # accounts.models에서 PointTransaction를 가져오도록 수정 (만약 경로가 다르다면 실제 경로로)
 from notifications.models import Notification
 
 class MarketListingListCreateAPIView(generics.ListCreateAPIView):
     queryset = MarketListing.objects.select_related("strategy", "seller").all()
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticated] # 로그인한 사용자만 접근 가능
+
     def get_serializer_class(self):
         if self.request.method == "POST":
             return MarketListingCreateSerializer
         return MarketListingSerializer
+
+    # ▼▼▼ 이 perform_create 메소드를 추가하거나, 이미 있다면 올바르게 수정. ▼▼▼
+    def perform_create(self, serializer):
+        # 새로운 MarketListing을 저장할 때 seller 필드에 현재 로그인한 사용자를 할당
+        serializer.save(seller=self.request.user)
+    # ▲▲▲ ▲▲▲ ▲▲▲ ▲▲▲ ▲▲▲ ▲▲▲ ▲▲▲ ▲▲▲ ▲▲▲ ▲▲▲ ▲▲▲ ▲▲▲ ▲▲▲ ▲▲▲ ▲▲▲ ▲▲▲
 
 class MarketListingRetrieveUpdateDestroyAPIView(
     generics.RetrieveUpdateDestroyAPIView
@@ -32,12 +39,17 @@ class MarketListingRetrieveUpdateDestroyAPIView(
         listing = self.get_object()
         user = self.request.user
         if listing.seller != user:
-            raise PermissionError("본인 판매 목록만 수정할 수 있습니다")
+            # Django의 PermissionDenied 예외를 사용하는 것이 더 적절할 수 있습니다.
+            # from django.core.exceptions import PermissionDenied
+            # raise PermissionDenied("본인 판매 목록만 수정할 수 있습니다")
+            return Response({"error": "본인 판매 목록만 수정할 수 있습니다"}, status=status.HTTP_403_FORBIDDEN)
         serializer.save()
 
     def perform_destroy(self, instance):
         if instance.seller != self.request.user:
-            raise PermissionError("본인 판매 목록만 삭제할 수 있습니다")
+            # from django.core.exceptions import PermissionDenied
+            # raise PermissionDenied("본인 판매 목록만 삭제할 수 있습니다")
+            return Response({"error": "본인 판매 목록만 삭제할 수 있습니다"}, status=status.HTTP_403_FORBIDDEN)
         instance.delete()
 
 class PurchaseAPIView(APIView):
@@ -53,7 +65,9 @@ class PurchaseAPIView(APIView):
             return Response({"error": "이미 구매한 전략입니다"},
                             status=status.HTTP_400_BAD_REQUEST)
         price = listing.price_point
-        if buyer.point_balance < price:
+        
+        # CustomUser 모델의 point_balance 필드를 직접 사용합니다.
+        if buyer.point_balance < price: 
             return Response({"error": "포인트가 부족합니다"},
                             status=status.HTTP_400_BAD_REQUEST)
 
@@ -77,7 +91,7 @@ class PurchaseAPIView(APIView):
                 reason="strategy_sale"
             )
             # 판매 수 증가
-            listing.sales = listing.sales + 1
+            listing.sales += 1 # 직접 증가
             listing.save(update_fields=["sales"])
             # 구매 기록
             purchase = Purchase.objects.create(
@@ -87,10 +101,13 @@ class PurchaseAPIView(APIView):
             # 알림 생성
             Notification.objects.create(
                 user=seller,
+                noti_type=Notification.SYSTEM, # 알림 타입은 적절히 설정 (예: Notification.MARKETPLACE)
                 verb="전략이 판매되었습니다",
-                target=purchase,
+                # target은 객체를 직접 참조하거나, contenttype을 사용하는 것이 더 좋습니다.
+                # 여기서는 문자열로 간단히 표현합니다.
+                target=f"purchase:{purchase.id}", 
                 message=f"{buyer.username}님이 {listing.strategy.name} 전략을 구매하였습니다",
-                link=f"/strategies/{listing.strategy.id}/"
+                link=f"/marketplace/{listing.id}/" # 구매한 리스팅 상세 페이지로 연결 (프론트엔드 라우트 기준)
             )
 
         serializer = PurchaseSerializer(purchase)
@@ -101,4 +118,4 @@ class PurchaseListAPIView(generics.ListAPIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def get_queryset(self):
-        return Purchase.objects.filter(buyer=self.request.user)
+        return Purchase.objects.filter(buyer=self.request.user).select_related('listing__strategy', 'listing__seller')
