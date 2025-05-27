@@ -1,4 +1,4 @@
-<!-- front/src/components/HelloWorld.vue -->
+<!-- frontpjt/src/components/HelloWorld.vue -->
 <script setup>
 defineProps({
   msg: {

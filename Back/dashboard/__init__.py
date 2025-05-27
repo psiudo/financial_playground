@@ -1,1 +1,1 @@
-# back/dashboard/__init__.py
+# dashboard/__init__.py

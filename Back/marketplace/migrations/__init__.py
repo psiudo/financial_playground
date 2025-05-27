@@ -1,1 +1,1 @@
-# back/marketplace/migrations/__init__.py
+# marketplace/migrations/__init__.py

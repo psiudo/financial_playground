@@ -1,4 +1,4 @@
-# back/bank_locations/models.py
+# bank_locations/models.py
 from django.db import models
 from django.conf import settings
 

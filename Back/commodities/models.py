@@ -1,4 +1,4 @@
-# back/commodities/models.py
+# commodities/models.py
 from django.db import models
 
 

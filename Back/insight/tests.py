@@ -1,4 +1,4 @@
-# back/insight/tests.py
+# insight/tests.py
 from django.test import TestCase
 
 # Create your tests here.

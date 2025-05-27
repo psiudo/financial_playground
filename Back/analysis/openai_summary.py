@@ -1,4 +1,4 @@
-# back/analysis/openai_summary.py
+# analysis/openai_summary.py
 import os, re, json, time, functools, logging, openai
 from collections import Counter
 

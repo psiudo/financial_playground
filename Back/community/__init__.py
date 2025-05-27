@@ -1,1 +1,1 @@
-# back/community/__init__.py
+# community/__init__.py

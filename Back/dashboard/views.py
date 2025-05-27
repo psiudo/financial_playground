@@ -1,4 +1,4 @@
-# back/dashboard/views.py
+# dashboard/views.py
 from django.shortcuts import render
 
 # Create your views here.

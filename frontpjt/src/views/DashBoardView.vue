@@ -1,4 +1,4 @@
-<!-- front/src/views/DashBoardView.vue -->
+<!-- frontpjt/src/views/DashBoardView.vue -->
 <template>
     <div>
       <h2>대시보드입니다</h2>

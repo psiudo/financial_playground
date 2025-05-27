@@ -1,3 +1,4 @@
+<!-- frontpjt/src/views/CommodityHistoryView.vue -->
 <template>
   <div class="commodity-history-view">
     <h1>{{ symbol }} 가격 내역</h1>

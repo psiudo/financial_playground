@@ -1,4 +1,4 @@
-# back/analysis/openai_sentiment.py
+# analysis/openai_sentiment.py
 import os, re, json, time, functools, logging, openai
 from collections import Counter
 from typing import Optional

@@ -1,4 +1,4 @@
-# back/crawlers/apps.py
+# crawlers/apps.py
 from django.apps import AppConfig
 
 

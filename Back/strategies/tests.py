@@ -1,4 +1,4 @@
-# back/strategies/tests.py
+# strategies/tests.py
 from django.test import TestCase
 
 # Create your tests here.

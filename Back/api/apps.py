@@ -1,4 +1,4 @@
-# back/api/apps.py
+# api/apps.py
 from django.apps import AppConfig
 
 

@@ -1,4 +1,4 @@
-# back/community/api/urls.py
+# community/api/urls.py
 from rest_framework_nested import routers
 from .views import PostViewSet, CommentViewSet
 

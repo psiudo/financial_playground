@@ -1,1 +1,1 @@
-# back/financial_products/migrations/__init__.py
+# financial_products/migrations/__init__.py

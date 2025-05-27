@@ -1,190 +1,266 @@
 <template>
-    <div class="marketplace-detail-view">
-      <div v-if="loading" class="loading-spinner">로딩 중...</div>
-      <div v-if="error" class="error-message">{{ error }}</div>
+    <div class="container mt-5">
+      <div v-if="loading" class="text-center">
+        <p>데이터를 불러오는 중...</p>
+        <div class="spinner-border" role="status">
+          <span class="visually-hidden">Loading...</span>
+        </div>
+      </div>
   
-      <div v-if="listing && !loading && !error" class="listing-details">
-        <h1>{{ listing.strategy_name }}</h1>
-        <p><strong>판매자:</strong> {{ listing.seller }}</p>
-        <p><strong>가격:</strong> {{ listing.price_point }} 포인트</p>
-        <p><strong>판매 횟수:</strong> {{ listing.sales }}</p>
-        <p><strong>등록일:</strong> {{ formatDate(listing.created_at) }}</p>
+      <div v-else-if="error" class="alert alert-danger">
+        <p>{{ error }}</p>
+        <RouterLink :to="{ name: 'MarketplaceView' }" class="btn btn-secondary">마켓플레이스로 돌아가기</RouterLink>
+      </div>
   
-        <div v-if="listing.strategy_description" class="strategy-description">
-          <h3>전략 설명</h3>
-          <pre>{{ listing.strategy_description }}</pre>
+      <div v-else-if="listing && listing.strategy" class="card">
+        <div class="card-header">
+          <h2>{{ listing.strategy.name }}</h2>
+          <p class="mb-0">
+              <span class="badge bg-info me-2">{{ listing.strategy.is_public ? '공개 전략' : '비공개 전략' }}</span>
+              <span v-if="listing.price_point > 0" class="badge bg-warning text-dark">유료 ({{ listing.price_point }}P)</span>
+              <span v-else class="badge bg-success">무료</span>
+          </p>
+        </div>
+        <div class="card-body">
+          <p><strong>판매자:</strong> {{ listing.seller }}</p>
+          <p><strong>설명:</strong> {{ listing.strategy.description || '설명이 없습니다.' }}</p>
+          <p><strong>판매 수:</strong> {{ listing.sales }}</p>
+          <p><strong>등록일:</strong> {{ new Date(listing.created_at).toLocaleDateString() }}</p>
+          
+          <hr/>
+          <h4>전략 규칙 (Rule JSON)</h4>
+          <div v-if="listing.strategy.rule_json" class="mt-3">
+            <pre class="bg-light p-3 rounded"><code>{{ JSON.stringify(listing.strategy.rule_json, null, 2) }}</code></pre>
+          </div>
+          <div v-else class="alert alert-info mt-3">
+            <p v-if="isOwner">이 전략은 귀하의 소유이므로 규칙을 볼 수 있습니다. (실제 규칙이 정의되지 않았거나, 백엔드에서 접근 권한에 따라 rule_json이 제공되지 않았을 수 있습니다.)</p>
+            <p v-else-if="listing.strategy.is_purchased">이미 구매한 전략입니다. 규칙을 확인할 수 있습니다. (실제 규칙이 정의되지 않았거나, 백엔드에서 접근 권한에 따라 rule_json이 제공되지 않았을 수 있습니다.)</p>
+            <p v-else-if="listing.strategy.is_public && listing.price_point === 0">무료 공개 전략입니다. (규칙이 공개되지 않았거나 판매자가 비공개했을 수 있습니다.)</p>
+            <p v-else>유료 전략입니다. 규칙의 상세 내용은 구매 후 확인할 수 있습니다.</p>
+          </div>
         </div>
   
-        <button 
-          @click="handlePurchase" 
-          :disabled="purchaseLoading || !canPurchase"
-          class="purchase-btn">
-          {{ purchaseButtonText }}
-        </button>
-        <p v-if="purchaseError" class="error-message">{{ purchaseError }}</p>
-        <p v-if="purchaseSuccess" class="success-message">{{ purchaseSuccess }}</p>
+        <div class="card-footer">
+          <div v-if="isOwner">
+            <p class="text-info">✔ 자신이 판매하는 전략입니다.</p>
+          </div>
+          <div v-else-if="listing.strategy.is_purchased">
+            <p class="text-success">✔ 이 전략을 이미 구매했습니다.</p>
+            <RouterLink :to="{ name: 'StrategyListView' }" class="btn btn-outline-primary btn-sm mt-2">
+              나의 전략 목록으로 이동
+            </RouterLink>
+          </div>
+          <div v-else-if="listing.price_point > 0">
+            <button @click="purchaseStrategy" class="btn btn-success" :disabled="purchaseLoading">
+              <span v-if="purchaseLoading" class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+              {{ purchaseLoading ? '구매 처리 중...' : `${listing.price_point}P로 구매하기` }}
+            </button>
+          </div>
+          <div v-else> <button @click="forkFreeStrategy" class="btn btn-primary" :disabled="purchaseLoading">
+              <span v-if="purchaseLoading" class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+              {{ purchaseLoading ? '가져오는 중...' : '무료로 나의 전략에 추가하기 (Fork)' }}
+            </button>
+          </div>
+          <RouterLink :to="{ name: 'MarketplaceView' }" class="btn btn-outline-secondary ms-2">
+            마켓 목록으로
+          </RouterLink>
+        </div>
+      </div>
+       <div v-else class="alert alert-warning">
+        <p>리스팅 또는 전략 정보를 찾을 수 없습니다. 마켓플레이스 목록으로 돌아가거나 다시 시도해주세요.</p>
+        <RouterLink :to="{ name: 'MarketplaceView' }" class="btn btn-secondary">마켓플레이스로 돌아가기</RouterLink>
       </div>
     </div>
   </template>
   
   <script setup>
-  import { ref, onMounted, computed } from 'vue';
-  import { useRoute, useRouter } from 'vue-router';
-  import api from '@/utils/api';
-  // import { useAuthStore } from '@/stores/auth'; // (선택) Pinia 스토어 사용 시
+  import { ref, onMounted, computed, watch } from 'vue'
+  import { useRoute, useRouter, RouterLink } from 'vue-router' // RouterLink는 script setup에서 사용 안 함
+  import api from '@/utils/api'
   
-  // const authStore = useAuthStore(); // (선택)
-  const route = useRoute();
-  const router = useRouter();
-  const listingId = ref(route.params.listingId);
-  const listing = ref(null);
-  const loading = ref(true);
-  const error = ref(null);
+  const route = useRoute()
+  const router = useRouter()
   
-  const purchaseLoading = ref(false);
-  const purchaseError = ref(null);
-  const purchaseSuccess = ref(null);
-  const isOwner = ref(false);
-  const alreadyPurchased = ref(false); 
+  console.log('[MarketplaceDetailView] 스크립트 setup 실행');
   
-  const fetchListingDetail = async () => {
-    loading.value = true;
-    error.value = null;
+  const listing = ref(null)
+  const loading = ref(true)
+  const error = ref('') 
+  const purchaseLoading = ref(false)
+  
+  const currentUsername = ref(localStorage.getItem('username')) 
+  
+  const getValidListingId = (param) => {
+    if (Array.isArray(param)) {
+      console.warn('[MarketplaceDetailView] listingId가 배열로 전달됨:', param, '첫 번째 요소를 사용합니다.');
+      return param[0];
+    }
+    if (param !== null && typeof param === 'object') {
+      console.error('[MarketplaceDetailView] listingId가 객체 형태로 전달됨:', param);
+      return null; 
+    }
+    if (param === undefined || param === null || String(param).trim() === '') {
+      console.error('[MarketplaceDetailView] listingId가 undefined, null 또는 빈 문자열입니다:', param);
+      return null;
+    }
+    return String(param); // 일관성을 위해 문자열로 변환
+  };
+  
+  const listingId = computed(() => getValidListingId(route.params.listingId));
+  
+  const isOwner = computed(() => {
+    if (!listing.value || !listing.value.seller || !currentUsername.value) {
+      return false
+    }
+    return listing.value.seller === currentUsername.value
+  })
+  
+  // 데이터를 가져오는 유일한 함수: /api/marketplace/${id}/ 호출
+  const fetchListingDetails = async () => {
+    loading.value = true
+    error.value = '' 
+    listing.value = null 
+  
+    const idForApi = listingId.value; // computed를 통해 한번 검증된 ID 사용
+    console.log(`[MarketplaceDetailView] fetchListingDetails 호출 시작. API 호출에 사용될 ID: "${idForApi}"`, '타입:', typeof idForApi);
+  
+    if (!idForApi) { // 여기서 null 또는 빈 문자열 등도 체크
+        console.error('[MarketplaceDetailView] fetchListingDetails: API 호출 전 listingId가 유효하지 않음!', idForApi);
+        error.value = `잘못된 매물 ID(${idForApi})로 데이터를 요청할 수 없습니다. 이전 페이지로 돌아가 다시 시도해주세요.`;
+        loading.value = false;
+        return;
+    }
+  
     try {
-      const response = await api.get(`/marketplace/${listingId.value}/`);
-      listing.value = response.data;
-  
-      // (선택) 추가적으로 strategy의 상세 정보를 가져오는 로직
-      // if (listing.value && listing.value.strategy) {
-      //   const stratResponse = await api.get(`/strategies/${listing.value.strategy}/`);
-      //   listing.value.strategy_description = stratResponse.data.description; 
-      //   // rule_json 등 필요한 정보 추가
-      // }
-  
-  
-      // (선택) 현재 사용자가 판매자인지, 이미 구매했는지 확인
-      // 이 정보는 백엔드에서 함께 내려주거나, 별도 API 호출이 필요할 수 있습니다.
-      // 예시: 현재 사용자 정보 가져오기 (Pinia 스토어 또는 /api/accounts/me/ 활용)
-      // const currentUser = authStore.user; // Pinia 사용 시
-      // if (currentUser && listing.value) {
-      //   isOwner.value = currentUser.username === listing.value.seller;
-      // }
-      // 이미 구매했는지 여부는 /api/marketplace/purchases/ 등을 통해 확인 가능
+      // *** 유일한 데이터 요청 API 호출 ***
+      const response = await api.get(`/marketplace/${idForApi}/`); // API 경로 확인
+      console.log('[MarketplaceDetailView] /marketplace/:id/ API 응답:', JSON.parse(JSON.stringify(response.data))); // 순환 참조 방지하며 로그
+      listing.value = response.data
+      
+      if (!listing.value || !listing.value.strategy) {
+          console.error('[MarketplaceDetailView] API 응답에서 listing 또는 listing.strategy 객체를 찾을 수 없습니다.', response.data);
+          error.value = '전략 상세 정보를 올바르게 불러오지 못했습니다. (서버 응답 데이터 구조 확인 필요)'
+          listing.value = null; 
+      }
   
     } catch (err) {
-      console.error('마켓플레이스 상세 정보 조회 실패:', err);
-      error.value = '상세 정보를 불러오는 데 실패했습니다.';
-      if (err.response && err.response.status === 404) {
-          error.value = '해당 판매 전략을 찾을 수 없습니다.';
+      console.error(`[MarketplaceDetailView] fetchListingDetails 실패 (요청 ID: ${idForApi})`, err);
+      if (err.response) {
+        console.error('Error response data:', err.response.data);
+        console.error('Error response status:', err.response.status);
+        let detailErrorMessage = err.response.data.detail || (typeof err.response.data === 'string' ? err.response.data : err.message);
+        if (err.response.status === 404) {
+          error.value = `해당 마켓플레이스 매물을 찾을 수 없습니다 (ID: ${idForApi}). 서버 응답: ${detailErrorMessage}`;
+        } else {
+          error.value = `리스팅 정보 로딩 중 오류 발생 (상태: ${err.response.status}). 서버 응답: ${detailErrorMessage}`;
+        }
+      } else {
+        error.value = `리스팅 정보 로딩 중 네트워크 또는 기타 오류 발생: ${err.message}`;
       }
+      listing.value = null;
     } finally {
       loading.value = false;
     }
-  };
+  }
   
-  const handlePurchase = async () => {
+  const purchaseStrategy = async () => {
+    if (!listing.value || !listing.value.strategy) {
+      alert('구매할 전략 정보가 없습니다.');
+      return;
+    }
+  
+    const idForApi = listingId.value;
+    if (!idForApi) {
+      alert('잘못된 매물 ID로 구매를 시도할 수 없습니다.');
+      return;
+    }
+  
     purchaseLoading.value = true;
-    purchaseError.value = null;
-    purchaseSuccess.value = null;
     try {
-      const response = await api.post(`/marketplace/${listingId.value}/purchase/`);
-      purchaseSuccess.value = `"<span class="math-inline">\{listing\.value\.strategy\_name\}" 전략 구매가 완료되었습니다\. \(</span>{listing.value.price_point}P 차감)`;
-      // (선택) 사용자 포인트 정보 업데이트 (Pinia 스토어 등)
-      // authStore.fetchUser(); // 예시
-      alreadyPurchased.value = true; // 구매 완료 상태로 변경
-      // 필요하다면 리스팅 정보 다시 로드 (예: 판매 횟수 업데이트)
-      fetchListingDetail(); 
-    } catch (err) {
-      console.error('전략 구매 실패:', err);
-      if (err.response && err.response.data && err.response.data.error) {
-        purchaseError.value = err.response.data.error;
+      const response = await api.post(`/marketplace/${idForApi}/purchase/`); // API 경로 확인
+      alert('전략을 성공적으로 구매했습니다! 나의 전략 목록에 추가되었습니다.');
+      
+      const clonedStrategyId = response.data.cloned_strategy_id;
+  
+      // 구매 성공 후, 프론트엔드 상태 업데이트
+      // 백엔드의 PurchaseAPIView 응답에 업데이트된 listing 정보가 포함되어 있다고 가정
+      if (response.data && response.data.listing && response.data.listing.strategy) {
+          listing.value = response.data.listing; 
       } else {
-        purchaseError.value = '전략 구매 중 오류가 발생했습니다.';
+          // 응답에 최신 리스팅 정보가 없다면, 다시 fetch하여 화면을 갱신
+          await fetchListingDetails();
       }
+  
+      if (clonedStrategyId) {
+        if (confirm("구매한 전략이 나의 전략 목록에 추가되었습니다. 해당 전략 상세 페이지로 이동하시겠습니까?")) {
+          router.push({ name: 'StrategyDetailView', params: { strategyId: clonedStrategyId } });
+        }
+      } else {
+          if (confirm("나의 전략 목록으로 이동하여 구매한 전략을 확인하시겠습니까?")) {
+              router.push({ name: 'StrategyListView' });
+          }
+      }
+    } catch (err) {
+      console.error('전략 구매에 실패했습니다:', err);
+      alert(`전략 구매에 실패했습니다: ${err.response?.data?.detail || '서버 오류가 발생했습니다.'}`);
     } finally {
       purchaseLoading.value = false;
     }
-  };
+  }
   
-  const canPurchase = computed(() => {
-      // 실제 로직은 로그인한 사용자 정보(authStore.user.username)와 비교하거나
-      // 백엔드에서 내려주는 is_owner, already_purchased 같은 플래그를 사용해야 합니다.
-      // 아래는 임시 로직입니다.
-      // if (!authStore.isAuthenticated) return false; // 로그인 안했으면 구매 불가
-      // if (isOwner.value) return false; // 자신의 전략이면 구매 불가
-      // if (alreadyPurchased.value) return false; // 이미 구매했으면 구매 불가
-      return true; // 임시로 항상 구매 가능하게 설정
-  });
-  
-  const purchaseButtonText = computed(() => {
-      // if (!authStore.isAuthenticated) return '로그인 후 구매 가능';
-      // if (isOwner.value) return '내 전략은 구매 불가';
-      // if (alreadyPurchased.value) return '이미 구매한 전략';
-      if (purchaseLoading.value) return '구매 처리 중...';
-      return `${listing.value?.price_point} 포인트로 구매하기`;
-  });
-  
-  
-  const formatDate = (dateString) => {
-    const options = { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' };
-    return new Date(dateString).toLocaleDateString('ko-KR', options);
-  };
+  const forkFreeStrategy = async () => {
+    if (!listing.value || !listing.value.strategy) {
+      alert('가져올 전략 정보가 없습니다.');
+      return;
+    }
+     if (listing.value.price_point > 0) { 
+        alert('이 전략은 유료입니다. 구매 버튼을 이용해주세요.');
+        return;
+    }
+    // 무료 전략도 백엔드의 purchase API를 사용하여 복제 (백엔드에서 price_point가 0이면 포인트 차감 없이 처리)
+    await purchaseStrategy(); 
+  }
   
   onMounted(() => {
-    fetchListingDetail();
+    console.log('[MarketplaceDetailView] onMounted 시작. route.params.listingId 원본:', route.params.listingId, '| 타입:', typeof route.params.listingId);
+    const idFromRoute = getValidListingId(route.params.listingId);
+    console.log('[MarketplaceDetailView] onMounted - getValidListingId 후 ID:', idFromRoute);
+  
+    if (idFromRoute) {
+      fetchListingDetails();
+    } else {
+      loading.value = false;
+      error.value = `잘못되었거나 없는 마켓플레이스 매물 ID입니다. (라우트 파라미터 값: "${route.params.listingId}")`;
+      console.error(error.value);
+    }
+  })
+  
+  watch(listingId, (newId, oldId) => { // listingId는 computed이므로 .value 없이 사용
+    console.log(`[MarketplaceDetailView] listingId (computed) 변경 감지: ${oldId} -> ${newId}`, '| 새 ID 타입:', typeof newId);
+    if (newId && newId !== oldId) { 
+      // newId가 이미 getValidListingId를 거친 값이므로 바로 사용 가능
+      fetchListingDetails();
+    } else if (!newId && oldId) { 
+      console.log('[MarketplaceDetailView] watch에서 listingId가 유효하지 않은 값으로 변경됨 (아마도 페이지 이동).');
+      // listing.value = null; // 필요시 데이터 초기화
+      // error.value = '매물 ID 정보가 유효하지 않습니다.';
+      // loading.value = false;
+    }
   });
+  
   </script>
   
   <style scoped>
-  .marketplace-detail-view {
-    padding: 20px;
+  .card-header h2 {
+    margin-bottom: 0;
   }
-  .listing-details {
-    background-color: #fff;
-    padding: 20px;
-    border-radius: 8px;
-    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+  pre {
+    white-space: pre-wrap;
+    word-break: break-all;
+    background-color: #f8f9fa !important; 
+    border: 1px solid #dee2e6;
   }
-  .listing-details h1 {
-    margin-top: 0;
-  }
-  .strategy-description {
-    margin-top: 20px;
-    padding: 15px;
-    background-color: #f8f9fa;
-    border: 1px solid #e9ecef;
-    border-radius: 4px;
-  }
-  .strategy-description pre {
-    white-space: pre-wrap; /* 줄바꿈 처리 */
-    word-wrap: break-word;
-  }
-  .purchase-btn {
-    margin-top: 20px;
-    padding: 10px 20px;
-    background-color: #28a745;
-    color: white;
-    border: none;
-    border-radius: 5px;
-    cursor: pointer;
-    font-size: 1.1em;
-  }
-  .purchase-btn:disabled {
-    background-color: #ccc;
-    cursor: not-allowed;
-  }
-  .purchase-btn:hover:not(:disabled) {
-    background-color: #218838;
-  }
-  .loading-spinner, .error-message, .success-message {
-    text-align: center;
-    margin-top: 20px;
-    font-size: 1.2em;
-  }
-  .error-message {
-    color: red;
-  }
-  .success-message {
-    color: green;
+  .badge {
+      font-size: 0.85em;
   }
   </style>

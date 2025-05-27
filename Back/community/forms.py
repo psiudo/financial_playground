@@ -1,4 +1,4 @@
-# back/community/forms.py
+# community/forms.py
 from django import forms
 from .models import Post
 

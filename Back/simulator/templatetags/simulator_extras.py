@@ -1,4 +1,4 @@
-# back/simulator/templatetags/simulator_extras.py
+# simulator/templatetags/simulator_extras.py
 from django import template
 
 register = template.Library()

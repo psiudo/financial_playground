@@ -1,1 +1,1 @@
-# back/notifications/api/__init__.py
+# notifications/api/__init__.py

@@ -1,4 +1,4 @@
-# back/commodities/views.py
+# commodities/views.py
 from django.shortcuts import render
 
 # Create your views here.

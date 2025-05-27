@@ -1,4 +1,4 @@
-# back/analysis/tests.py
+# analysis/tests.py
 from django.test import TestCase
 
 # Create your tests here.

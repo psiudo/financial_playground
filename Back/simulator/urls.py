@@ -1,4 +1,4 @@
-# back/simulator/urls.py
+# simulator/urls.py
 
 from django.urls import path
 from . import views 

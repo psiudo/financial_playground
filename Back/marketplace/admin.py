@@ -1,4 +1,4 @@
-# back/marketplace/admin.py
+# marketplace/admin.py
 from django.contrib import admin
 from .models import MarketListing, Purchase
 

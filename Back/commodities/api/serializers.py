@@ -1,4 +1,4 @@
-# back/commodities/api/serializers.py
+# commodities/api/serializers.py
 from rest_framework import serializers
 from commodities.models import Commodity, PriceHistory
 

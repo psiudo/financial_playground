@@ -1,4 +1,4 @@
-# back/insight/apps.py
+# insight/apps.py
 from django.apps import AppConfig
 
 

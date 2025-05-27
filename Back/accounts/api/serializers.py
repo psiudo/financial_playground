@@ -1,4 +1,4 @@
-# back/accounts/api/serializers.py
+# accounts/api/serializers.py
 from rest_framework import serializers
 from accounts.models import CustomUser
 

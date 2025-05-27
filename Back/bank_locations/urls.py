@@ -1,4 +1,4 @@
-# back/bank_locations/urls.py
+# bank_locations/urls.py
 from django.urls import path
 
 urlpatterns = []

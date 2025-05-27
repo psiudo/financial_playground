@@ -1,4 +1,4 @@
-# back/notifications/admin.py
+# notifications/admin.py
 from django.contrib import admin
 from notifications.models import Notification
 admin.site.register(Notification)

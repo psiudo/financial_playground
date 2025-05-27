@@ -1,4 +1,4 @@
-<!-- front/src/views/AboutView.vue -->
+<!-- frontpjt/src/views/AboutView.vue -->
 <template>
   <div class="about">
     <h1>This is an about page</h1>

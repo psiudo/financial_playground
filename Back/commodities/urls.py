@@ -1,4 +1,4 @@
-# back/commodities/urls.py
+# commodities/urls.py
 from django.urls import path
 
 urlpatterns = []

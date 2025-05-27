@@ -1,4 +1,4 @@
-# back/notifications/api/serializers.py
+# notifications/api/serializers.py
 from rest_framework import serializers
 from notifications.models import Notification
 

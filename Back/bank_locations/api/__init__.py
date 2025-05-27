@@ -1,1 +1,1 @@
-# back/bank_locations/api/__init__.py
+# bank_locations/api/__init__.py

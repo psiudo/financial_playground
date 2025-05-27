@@ -1,4 +1,4 @@
-# back/simulator/serializers.py
+# simulator/serializers.py
 
 from rest_framework import serializers
 from .models import VirtualTrade

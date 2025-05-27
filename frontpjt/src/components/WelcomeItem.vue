@@ -1,4 +1,4 @@
-<!-- front/src/components/WelcomeItem.vue -->
+<!-- frontpjt/src/components/WelcomeItem.vue -->
 <template>
   <div class="item">
     <i>

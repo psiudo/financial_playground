@@ -1,3 +1,3 @@
-# back/crawlers/services/naver.py
+# crawlers/services/naver.py
 def fetch_naver_comments():
   pass

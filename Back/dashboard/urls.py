@@ -1,4 +1,4 @@
-# back/dashboard/urls.py
+# dashboard/urls.py
 from django.urls import path
 
 urlpatterns = []

@@ -1,3 +1,4 @@
+<!-- frontpjt/src/App.vue -->
 <script setup>
 import { RouterLink, RouterView, useRouter } from 'vue-router';
 import HelloWorld from './components/HelloWorld.vue'; // 기존 HelloWorld 컴포넌트는 유지하거나 필요에 따라 제거하셔도 됩니다.

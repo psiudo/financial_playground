@@ -1,1 +1,1 @@
-# back/simulator/migrations/__init__.py
+# simulator/migrations/__init__.py

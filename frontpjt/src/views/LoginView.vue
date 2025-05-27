@@ -1,4 +1,4 @@
-<!-- front/src/views/LoginView.vue -->
+<!-- frontpjt/src/views/LoginView.vue -->
 <template>
   <div class="login-container">
     <h2>로그인</h2>

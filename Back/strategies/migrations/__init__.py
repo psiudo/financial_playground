@@ -1,1 +1,1 @@
-# back/strategies/migrations/__init__.py
+# strategies/migrations/__init__.py

@@ -1,3 +1,4 @@
+<!-- frontpjt/src/views/MarketplaceView.vue -->
 <template>
     <div class="marketplace-view">
       <h1>전략 마켓플레이스</h1>

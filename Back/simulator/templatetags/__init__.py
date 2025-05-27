@@ -1,1 +1,1 @@
-# back/simulator/templatetags/__init__.py
+# simulator/templatetags/__init__.py

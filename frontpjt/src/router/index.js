@@ -1,4 +1,4 @@
-// front/src/router/index.js
+// frontpjt/src/router/index.js
 import { createRouter, createWebHistory } from 'vue-router'
 import HomeView from '@/views/HomeView.vue'
 import LoginView from '@/views/LoginView.vue'
@@ -10,6 +10,9 @@ import MarketplaceDetailView from '@/views/MarketplaceDetailView.vue';
 import StrategyListView from '@/views/StrategyListView.vue';
 import StrategyCreateView from '@/views/StrategyCreateView.vue';
 import StrategyDetailView from '@/views/StrategyDetailView.vue';
+import FinancialProductListView from '@/views/FinancialProductListView.vue'
+import FinancialProductDetailView from '@/views/FinancialProductDetailView.vue' // ★ 상세 페이지용 (다음 단계)
+
 
 
 const routes = [
@@ -70,6 +73,17 @@ const routes = [
     component: StrategyDetailView,
     props: true, // strategyId를 props로 전달
     meta: { requiresAuth: true }
+  },
+  {
+    path: '/deposit-savings', // ★ 경로 예시: /deposit-savings
+    name: 'FinancialProductListView',
+    component: FinancialProductListView,
+  },
+  {
+    path: '/deposit-savings/:fin_prdt_cd', // ★ 상세 페이지 경로 예시
+    name: 'FinancialProductDetailView',
+    component: FinancialProductDetailView,
+    props: true // 라우트 파라미터를 props로 전달
   },
 ]
 

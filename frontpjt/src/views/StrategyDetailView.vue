@@ -1,3 +1,4 @@
+<!-- frontpjt/src/views/StrategyDetailView.vue -->
 <template>
     <div class="strategy-detail-view">
       <div v-if="loading" class="loading-spinner">로딩 중...</div>

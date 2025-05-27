@@ -1,4 +1,4 @@
-# back/docs/shoe_tree.py
+# docs/shoe_tree.py
 import os
 import argparse
 

@@ -1,4 +1,4 @@
-# back/simulator/api/views.py
+# simulator/api/views.py
 from rest_framework import generics, permissions, status
 from rest_framework.response import Response
 from simulator.models import VirtualPortfolio

@@ -1,4 +1,4 @@
-// front/src/stores/counter.js
+// frontpjt/src/stores/counter.js
 import { ref, computed } from 'vue'
 import { defineStore } from 'pinia'
 

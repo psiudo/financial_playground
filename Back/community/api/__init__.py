@@ -1,1 +1,1 @@
-# back/community/api/__init__.py
+# community/api/__init__.py

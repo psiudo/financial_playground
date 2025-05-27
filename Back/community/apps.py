@@ -1,4 +1,4 @@
-# back/community/apps.py
+# community/apps.py
 from django.apps import AppConfig   
 
 class CommunityConfig(AppConfig):

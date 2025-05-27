@@ -1,3 +1,4 @@
+<!-- frontpjt/src/views/StrategyListView.vue -->
 <template>
     <div class="strategy-list-view">
       <h1>나의 투자 전략 목록</h1>

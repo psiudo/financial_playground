@@ -1,3 +1,4 @@
+<!-- frontpjt/src/views/CommoditiesView.vue -->
 <template>
   <div class="commodities-view">
     <h1>기초자산 목록</h1>

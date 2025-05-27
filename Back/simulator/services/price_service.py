@@ -1,4 +1,4 @@
-# back/simulator/services/price_service.py
+# simulator/services/price_service.py
 
 import yfinance as yf
 

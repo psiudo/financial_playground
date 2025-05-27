@@ -1,4 +1,4 @@
-# back/financial/asgi.py
+# financial/asgi.py
 """
 ASGI config for financial project.
 

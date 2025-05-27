@@ -1,4 +1,4 @@
-# back/insight/forms.py
+# insight/forms.py
 
 from django import forms
 from .models import InterestStock

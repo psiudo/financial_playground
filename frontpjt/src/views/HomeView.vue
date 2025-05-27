@@ -1,4 +1,4 @@
-<!-- front/src/views/HomeView.vue -->
+<!-- frontpjt/src/views/HomeView.vue -->
 <script setup>
 import TheWelcome from '../components/TheWelcome.vue'
 </script>

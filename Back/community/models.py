@@ -1,4 +1,4 @@
-# back/community/models.py
+# community/models.py
 from django.db import models
 from django.conf import settings
 

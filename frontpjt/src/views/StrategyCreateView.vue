@@ -1,3 +1,4 @@
+<!-- frontpjt/src/views/StrategyCreateView.vue -->
 <template>
   <div class="strategy-create-view">
     <h1>새 투자 전략 만들기</h1>

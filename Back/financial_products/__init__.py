@@ -1,1 +1,1 @@
-# back/financial_products/__init__.py
+# financial_products/__init__.py

@@ -1,4 +1,4 @@
-# back/insight/tasks.py
+# insight/tasks.py
 """
 Celery 비동기 작업 정의
 • fetch_and_save_comments  → 댓글 크롤링 및 DB 저장

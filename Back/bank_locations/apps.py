@@ -1,4 +1,4 @@
-# back/bank_locations/apps.py
+# bank_locations/apps.py
 from django.apps import AppConfig
 
 

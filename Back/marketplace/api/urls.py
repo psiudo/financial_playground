@@ -1,4 +1,4 @@
-# back/marketplace/api/urls.py
+# marketplace/api/urls.py
 from django.urls import path
 from . import views
 

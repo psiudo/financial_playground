@@ -1,1 +1,1 @@
-# back/commodities/migrations/__init__.py
+# commodities/migrations/__init__.py

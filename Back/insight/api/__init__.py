@@ -1,1 +1,1 @@
-# back/insight/api/__init__.py
+# insight/api/__init__.py

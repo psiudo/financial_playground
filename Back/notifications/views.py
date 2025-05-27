@@ -1,3 +1,3 @@
-# back/notifications/views.py
+# notifications/views.py
 from django.shortcuts import render
 from django.http import HttpResponse

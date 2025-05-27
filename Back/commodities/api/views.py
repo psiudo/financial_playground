@@ -1,4 +1,4 @@
-# back/commodities/api/views.py
+# commodities/api/views.py
 from rest_framework import generics
 from django.shortcuts import get_object_or_404
 from commodities.models import Commodity

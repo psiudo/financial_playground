@@ -1,4 +1,4 @@
-# back/manage.py
+# manage.py
 # manage.py
 # manage.py
 # Back/manage.py

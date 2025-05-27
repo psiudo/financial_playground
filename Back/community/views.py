@@ -1,4 +1,4 @@
-# back/community/views.py
+# community/views.py
 from django.shortcuts import get_object_or_404, redirect, render
 from django.contrib.auth.decorators import login_required
 from .models import Post, Reaction, Comment, CommentReaction

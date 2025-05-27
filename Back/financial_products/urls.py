@@ -1,4 +1,4 @@
-# back/financial_products/urls.py
+# financial_products/urls.py
 from django.urls import path
 from . import views
 

@@ -1,4 +1,4 @@
-# back/accounts/urls.py
+# accounts/urls.py
 from django.urls import path
 from .views.user import signup_view, login_view, logout_view
 from .views.auth import LoginAPI, LoginTokenAPI
