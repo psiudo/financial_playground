@@ -1,3 +1,4 @@
+<!-- frontpjt/src/views/FinancialProductListView.vue -->
 <template>
     <div class="container mt-4">
       <h2>예금 & 적금 비교</h2>

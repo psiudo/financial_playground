@@ -1,3 +1,4 @@
+<!-- frontpjt/src/App.vue -->
 <template>
   <header>
     <img
@@ -17,8 +18,11 @@
         <RouterLink :to="{ name: 'MarketplaceView' }">마켓플레이스</RouterLink>
         <RouterLink :to="{ name: 'Commodities' }">기초자산</RouterLink>
         <RouterLink :to="{ name: 'StrategyListView' }">나의 전략</RouterLink>
-        
         <RouterLink :to="{ name: 'FinancialProductListView' }">예적금 비교</RouterLink>
+
+        <template v-if="authStore.isAuthenticated">
+          <RouterLink :to="{ name: 'profile' }" class="ms-2">프로필</RouterLink>
+        </template>
 
         <template v-if="authStore.isAuthenticated">
           <a href="#" @click.prevent="handleLogout" class="ms-2 nav-link-button">로그아웃</a>
@@ -37,18 +41,23 @@
 import { RouterLink, RouterView, useRouter } from 'vue-router';
 import HelloWorld from './components/HelloWorld.vue'; // HelloWorld 컴포넌트 경로
 import { useAuthStore } from '@/stores/authStore';   // authStore 사용
+import { onMounted } from 'vue'; // onMounted 추가
 
 const authStore = useAuthStore();
 const router = useRouter(); // useRouter는 페이지 이동 등에 사용될 수 있습니다.
 
 const handleLogout = () => {
-  authStore.logout(); 
-  // authStore.logout() 내부에서 router.push('/login') 등으로 페이지 이동 처리가 되어있을 것입니다.
+  authStore.logout();
+  // authStore.logout() 내부에서 router.push({ name: 'LoginView' }) 등으로 페이지 이동 처리가 되어있습니다.
 };
 
-// App.vue가 마운트될 때 또는 authStore의 특정 상태를 감시(watch)하여
-// 초기 사용자 정보를 가져오거나 토큰 유효성을 검사하는 로직을 추가할 수 있습니다.
-// 예: onMounted(() => { if (authStore.token) authStore.fetchUser(); });
+// App.vue가 마운트될 때 로컬 스토리지에 토큰이 있다면 사용자 정보를 가져오도록 합니다.
+// 이는 페이지 새로고침 시 로그인 상태를 유지하고 사용자 정보를 불러오기 위함입니다.
+onMounted(async () => {
+  if (authStore.token && !authStore.user) { // 토큰은 있는데 사용자 정보가 스토어에 없다면
+    await authStore.fetchUser();
+  }
+});
 </script>
 
 <style scoped>

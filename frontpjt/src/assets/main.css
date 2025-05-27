@@ -1,35 +1,38 @@
-@import './base.css';
+/* frontpjt/src/assets/main.css */
+@import './base.css'; /* base.css를 먼저 임포트 */
 
 #app {
-  max-width: 1280px;
+  max-width: 100%; /* 전체 너비 사용하도록 변경 또는 유지 */
   margin: 0 auto;
-  padding: 2rem;
-  font-weight: normal;
+  /* padding: 2rem; */ /* App.vue에서 직접 패딩 관리하도록 제거 또는 수정 */
+  font-weight: normal; /* base.css에서 이미 처리 */
+  /* display: grid; */ /* App.js 자체에서 grid 대신 flex 등을 사용하도록 변경 */
+  /* grid-template-columns: 1fr 1fr; */
+  /* padding: 0 2rem; */
 }
 
-a,
-.green {
+/* 기존 녹색 링크 스타일 제거 또는 Joomak 스타일로 변경 */
+a {
   text-decoration: none;
-  color: hsla(160, 100%, 37%, 1);
-  transition: 0.4s;
-  padding: 3px;
+  color: var(--joomak-primary); /* Joomak 기본 링크 색상 */
+  transition: color 0.3s;
+  /* padding: 3px; */ /* 필요에 따라 유지 또는 제거 */
 }
 
 @media (hover: hover) {
   a:hover {
-    background-color: hsla(160, 100%, 37%, 0.2);
+    color: var(--joomak-primary-dark); /* Joomak 링크 호버 색상 */
+    /* background-color: hsla(160, 100%, 37%, 0.2); */ /* 기존 녹색 호버 제거 */
   }
 }
 
 @media (min-width: 1024px) {
   body {
-    display: flex;
-    place-items: center;
+    /* display: flex; */ /* 기본 body 스타일은 base.css에서 관리 */
+    /* place-items: center; */
   }
 
   #app {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    padding: 0 2rem;
+    /* 필요한 경우 데스크탑용 #app 스타일 추가 */
   }
 }

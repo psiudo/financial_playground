@@ -1,3 +1,4 @@
+<!-- frontpjt/src/views/MarketplaceDetailView.vue -->
 <template>
     <div class="container mt-5">
       <div v-if="loading" class="text-center">

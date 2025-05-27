@@ -1,4 +1,4 @@
-# notifications/api/urls.py
+# Back/notifications/api/urls.py
 from django.urls import path
 from .views import (
     NotificationListView,

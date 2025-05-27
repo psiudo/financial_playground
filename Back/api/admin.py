@@ -1,4 +1,4 @@
-# api/admin.py
+# Back/api/admin.py
 from django.contrib import admin
 
 # Register your models here.

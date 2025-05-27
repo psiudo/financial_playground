@@ -1,4 +1,4 @@
-# strategies/apps.py
+# Back/strategies/apps.py
 from django.apps import AppConfig
 
 

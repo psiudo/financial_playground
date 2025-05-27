@@ -1,4 +1,4 @@
-// front/src/main.js
+// frontpjt/src/main.js
 import './assets/main.css'
 
 import { createApp } from 'vue'
@@ -9,7 +9,10 @@ import router from './router'
 
 // Bootstrap CSS 및 JS 가져오기
 import 'bootstrap/dist/css/bootstrap.min.css'
-import 'bootstrap' // ★★★ JS 번들 대신 기본 bootstrap 모듈을 가져오도록 변경 ★★★
+import 'bootstrap'
+import 'bootstrap/dist/css/bootstrap.min.css' // Bootstrap CSS
+import 'bootstrap-icons/font/bootstrap-icons.css' // ★ Bootstrap Icons
+
 
 const app = createApp(App)
 

@@ -1,4 +1,4 @@
-# accounts/api/views.py
+# Back/accounts/api/views.py
 from rest_framework import generics
 from rest_framework.permissions import IsAuthenticated
 from .serializers import UserProfileSerializer

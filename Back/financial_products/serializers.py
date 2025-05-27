@@ -1,4 +1,4 @@
-# financial_products/serializers.py
+# Back/financial_products/serializers.py
 
 from rest_framework import serializers
 from .models import FinancialProduct

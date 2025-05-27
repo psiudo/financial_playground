@@ -1,1 +1,1 @@
-# bank_locations/migrations/__init__.py
+# Back/bank_locations/migrations/__init__.py

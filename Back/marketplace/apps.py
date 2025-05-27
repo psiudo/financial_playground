@@ -1,4 +1,4 @@
-# marketplace/apps.py
+# Back/marketplace/apps.py
 from django.apps import AppConfig
 
 

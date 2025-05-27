@@ -1,4 +1,4 @@
-# simulator/api/serializers.py
+# Back/simulator/api/serializers.py
 from rest_framework import serializers
 from simulator.models import VirtualPortfolio, VirtualTrade
 

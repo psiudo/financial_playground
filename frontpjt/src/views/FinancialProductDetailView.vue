@@ -1,3 +1,4 @@
+<!-- frontpjt/src/views/FinancialProductDetailView.vue -->
 <template>
     <div class="product-detail-container container mt-4">
       <div v-if="financeStore.loading && !product" class="text-center my-5">

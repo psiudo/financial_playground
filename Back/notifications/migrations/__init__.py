@@ -1,1 +1,1 @@
-# notifications/migrations/__init__.py
+# Back/notifications/migrations/__init__.py

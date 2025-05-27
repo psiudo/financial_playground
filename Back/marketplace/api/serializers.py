@@ -1,4 +1,4 @@
-# marketplace/api/serializers.py
+# Back/marketplace/api/serializers.py
 from rest_framework import serializers
 from marketplace.models import MarketListing, Purchase
 from strategies.api.serializers import StrategySerializer # 수정된 StrategySerializer import

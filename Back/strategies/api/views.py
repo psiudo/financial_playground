@@ -1,4 +1,4 @@
-# strategies/api/views.py
+# Back/strategies/api/views.py
 from rest_framework import generics, permissions
 from rest_framework.exceptions import PermissionDenied
 from strategies.models import Strategy, StrategyRun, StrategyTrade

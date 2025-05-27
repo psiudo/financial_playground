@@ -1,14 +1,15 @@
+<!-- frontpjt/src/views/LoginView.vue -->
 <template>
   <div class="login-container">
     <h2>로그인</h2>
-    <form @submit.prevent="handleLogin">
+    <form @submit.prevent="performLogin">
       <div>
         <label for="username">아이디</label>
-        <input id="username" v-model="username" required />
+        <input id="username" v-model="credentials.username" required />
       </div>
       <div>
         <label for="password">비밀번호</label>
-        <input id="password" v-model="password" type="password" required />
+        <input id="password" v-model="credentials.password" type="password" required />
       </div>
       <button type="submit" :disabled="authStore.loading">
         {{ authStore.loading ? '로그인 중...' : '로그인' }}
@@ -18,33 +19,21 @@
   </div>
 </template>
 
-<script setup>
-import { ref } from 'vue';
-import { useAuthStore } from '@/stores/authStore'; // authStore 가져오기
-// import { useRouter } from 'vue-router'; // 라우터 이동은 authStore에서 처리하므로 여기서는 필요 없을 수 있습니다.
+<script setup> // ★ Composition API (script setup)으로 변경 권장
+import { reactive } from 'vue';
+import { useAuthStore } from '@/stores/authStore'; // ★ authStore 임포트
+// import api from '@/utils/api'; // 더 이상 LoginView에서 직접 사용 안 함
 
-const username = ref('');
-const password = ref('');
+const authStore = useAuthStore(); // ★ authStore 인스턴스 사용
+const credentials = reactive({ // ★ username, password를 반응형 객체로 관리
+  username: '',
+  password: '',
+});
+// const error = ref(null); // authStore.loginError를 사용하므로 필요 없어짐
 
-const authStore = useAuthStore();
-// const router = useRouter(); // authStore에서 라우터 이동을 담당
-
-const handleLogin = async () => {
-  // authStore의 loginError를 초기화해주는 것이 좋습니다 (선택 사항).
-  // authStore.loginError = null; // authStore 내 login 함수 시작 시 이미 처리하고 있음
-
-  // 이제 authStore의 login 함수를 호출합니다.
-  // authStore.login 함수는 내부적으로 API 호출, 토큰 저장, 상태 업데이트, 라우터 이동까지 처리합니다.
-  await authStore.login({
-    username: username.value,
-    password: password.value,
-  });
-
-  // 로그인 성공/실패에 따른 추가적인 처리가 필요하다면 여기서 할 수 있지만,
-  // 대부분은 authStore 내부에서 처리하는 것이 좋습니다.
-  // 예를 들어, 로그인 성공 시 authStore.isAuthenticated를 확인하거나,
-  // 실패 시 authStore.loginError를 확인하여 UI에 반영할 수 있습니다.
-  // (이미 템플릿에서 authStore.loginError를 사용하고 있습니다.)
+const performLogin = async () => { // ★ authStore.login 호출
+  await authStore.login(credentials);
+  // 로그인 성공/실패에 따른 페이지 이동 및 에러 표시는 authStore.login 내부에서 처리됩니다.
 };
 </script>
 
@@ -53,9 +42,48 @@ const handleLogin = async () => {
   max-width: 400px;
   margin: 0 auto;
   padding: 20px;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+.login-container h2 {
+  text-align: center;
+  margin-bottom: 20px;
+}
+.login-container div {
+  margin-bottom: 15px;
+}
+.login-container label {
+  display: block;
+  margin-bottom: 5px;
+  font-weight: bold;
+}
+.login-container input {
+  width: 100%;
+  padding: 8px;
+  box-sizing: border-box;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}
+.login-container button {
+  width: 100%;
+  padding: 10px;
+  background-color: #5cb85c;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 16px;
+}
+.login-container button:disabled {
+  background-color: #aaa;
+}
+.login-container button:hover:not(:disabled) {
+  background-color: #4cae4c;
 }
 .error {
   color: red;
   margin-top: 10px;
+  text-align: center;
 }
 </style>

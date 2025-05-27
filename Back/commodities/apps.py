@@ -1,4 +1,4 @@
-# commodities/apps.py
+# Back/commodities/apps.py
 from django.apps import AppConfig
 
 

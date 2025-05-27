@@ -1,4 +1,4 @@
-# insight/admin.py
+# Back/insight/admin.py
 from django.contrib import admin
 from .models import InterestStock, StockAnalysis, Comment
 

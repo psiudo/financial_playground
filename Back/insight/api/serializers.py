@@ -1,4 +1,4 @@
-# insight/api/serializers.py
+# Back/insight/api/serializers.py
 from rest_framework import serializers
 from insight.models import InterestStock, StockAnalysis
 

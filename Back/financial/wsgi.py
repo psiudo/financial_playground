@@ -1,4 +1,4 @@
-# financial/wsgi.py
+# Back/financial/wsgi.py
 """
 WSGI config for financial project.
 

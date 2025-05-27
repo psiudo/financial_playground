@@ -1,4 +1,4 @@
-# strategies/models.py
+# Back/strategies/models.py
 from django.db import models
 from django.conf import settings
 

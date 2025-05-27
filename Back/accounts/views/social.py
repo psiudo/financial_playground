@@ -1,4 +1,4 @@
-# accounts/views/social.py
+# Back/accounts/views/social.py
 import requests
 from django.conf import settings
 from django.shortcuts import redirect

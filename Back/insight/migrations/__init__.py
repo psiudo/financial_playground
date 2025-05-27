@@ -1,1 +1,1 @@
-# insight/migrations/__init__.py
+# Back/insight/migrations/__init__.py

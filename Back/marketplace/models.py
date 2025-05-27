@@ -1,4 +1,4 @@
-# marketplace/models.py
+# Back/marketplace/models.py
 from django.db import models
 from django.conf import settings
 

@@ -1,4 +1,4 @@
-# community/admin.py
+# Back/community/admin.py
 from django.contrib import admin
 from community.models import Post, Comment, Reaction, CommentReaction
 

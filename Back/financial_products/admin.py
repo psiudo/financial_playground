@@ -1,4 +1,4 @@
-# financial_products/admin.py
+# Back/financial_products/admin.py
 from django.contrib import admin
 from .models import Bank, FinancialProduct, ProductOption, JoinedProduct
 

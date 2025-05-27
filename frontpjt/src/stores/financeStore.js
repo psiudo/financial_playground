@@ -1,4 +1,4 @@
-// front/src/stores/financeStore.js
+// frontpjt/src/stores/financeStore.js
 import { ref } from 'vue'
 import { defineStore } from 'pinia'
 import api from '@/utils/api' // 백엔드 API 호출용

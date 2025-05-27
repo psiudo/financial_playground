@@ -1,4 +1,4 @@
-# notifications/urls.py
+# Back/notifications/urls.py
 from django.urls import path
 
 urlpatterns = []

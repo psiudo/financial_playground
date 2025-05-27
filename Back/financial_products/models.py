@@ -1,4 +1,4 @@
-# financial_products/models.py
+# Back/financial_products/models.py
 from django.db import models
 from django.conf import settings
 
@@ -15,6 +15,8 @@ class FinancialProduct(models.Model):
     PRODUCT_TYPE_CHOICES = [(DEPOSIT, "정기예금"), (SAVING, "적금")]
 
     bank              = models.ForeignKey(Bank, on_delete=models.CASCADE, verbose_name="은행")
+    # bank_type       = models.CharField(max_length=20, choices=BANK_TYPE_CHOICES, null=True, blank=True) # API: bank_type (예: 은행, 저축은행 등)
+
     fin_prdt_cd       = models.CharField(max_length=100, verbose_name="금융상품 코드") # API: fin_prdt_cd
     dcls_month        = models.CharField(max_length=6, verbose_name="공시월 (YYYYMM)", null = True) # API: dcls_month
     

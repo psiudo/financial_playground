@@ -1,4 +1,4 @@
-# financial_products/api/serializers.py
+# Back/financial_products/api/serializers.py
 
 from rest_framework import serializers
 from financial_products.models import (
@@ -121,3 +121,25 @@ class JoinedProductSerializer(serializers.ModelSerializer):
     class Meta:
         model = JoinedProduct
         fields = ['id', 'user', 'product', 'option', 'amount', 'joined_at']
+
+
+
+
+class BriefFinancialProductSerializer(serializers.ModelSerializer): # 프로필용 간략한 상품 정보
+    bank = BankSerializer(read_only=True)
+    class Meta:
+        model = FinancialProduct
+        fields = ['id', 'name', 'product_type', 'bank']
+
+class BriefProductOptionSerializer(serializers.ModelSerializer): # 프로필용 간략한 옵션 정보
+    class Meta:
+        model = ProductOption
+        fields = ['id', 'save_trm', 'intr_rate', 'intr_rate2', 'intr_rate_type_nm']
+
+class ProfileJoinedProductSerializer(serializers.ModelSerializer):
+    product = BriefFinancialProductSerializer(read_only=True)
+    option = BriefProductOptionSerializer(read_only=True)
+
+    class Meta:
+        model = JoinedProduct
+        fields = ['id', 'product', 'option', 'amount', 'joined_at']

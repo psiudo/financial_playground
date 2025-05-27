@@ -1,1 +1,1 @@
-# accounts/migrations/__init__.py
+# Back/accounts/migrations/__init__.py

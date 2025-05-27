@@ -1,4 +1,4 @@
-# simulator/apps.py
+# Back/simulator/apps.py
 from django.apps import AppConfig
 
 

@@ -1,4 +1,4 @@
-# dashboard/api/serializers.py
+# Back/dashboard/api/serializers.py
 from rest_framework import serializers
 
 class DashboardSummarySerializer(serializers.Serializer):

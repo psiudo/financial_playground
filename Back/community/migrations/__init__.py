@@ -1,1 +1,1 @@
-# community/migrations/__init__.py
+# Back/community/migrations/__init__.py

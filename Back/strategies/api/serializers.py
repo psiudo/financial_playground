@@ -1,4 +1,4 @@
-# strategies/api/serializers.py
+# Back/strategies/api/serializers.py
 from rest_framework import serializers
 from strategies.models import Strategy, StrategyRun, StrategyTrade
 # from marketplace.models import Purchase # 직접 임포트 최소화 (필요시 함수 내에서)

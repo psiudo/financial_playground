@@ -1,4 +1,4 @@
-# accounts/api/serializers.py
+# Back/accounts/api/serializers.py
 from rest_framework import serializers
 from accounts.models import CustomUser
 
@@ -21,5 +21,7 @@ class UserProfileSerializer(serializers.ModelSerializer):
             "signup_date",
             "social_login_type",
             "is_email_verified",
+            "joined_financial_products",
+            
         ]
         read_only_fields = ["username", "email", "point_balance", "signup_date"]

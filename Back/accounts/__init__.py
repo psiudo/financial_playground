@@ -1,1 +1,1 @@
-# accounts/__init__.py
+# Back/accounts/__init__.py

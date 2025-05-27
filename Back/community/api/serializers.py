@@ -1,4 +1,4 @@
-# community/api/serializers.py
+# Back/community/api/serializers.py
 from rest_framework import serializers
 from community.models import Post, Comment, Reaction
 

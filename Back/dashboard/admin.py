@@ -1,4 +1,4 @@
-# dashboard/admin.py
+# Back/dashboard/admin.py
 from django.contrib import admin
 
 # Register your models here.

@@ -1,4 +1,4 @@
-# simulator/admin.py
+# Back/simulator/admin.py
 from django.contrib import admin
 from .models import VirtualPortfolio, VirtualTrade
 

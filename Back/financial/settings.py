@@ -1,4 +1,4 @@
-# financial/settings.py
+# Back/financial/settings.py
 from pathlib import Path
 import mimetypes
 from dotenv import load_dotenv

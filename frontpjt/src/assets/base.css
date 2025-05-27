@@ -1,4 +1,6 @@
-/* color palette from <https://github.com/vuejs/theme> */
+/* frontpjt/src/assets/base.css */
+
+/* 기존 Vue 테마 변수는 유지하거나 필요에 따라 Joomak 테마로 대체/확장 가능 */
 :root {
   --vt-c-white: #ffffff;
   --vt-c-white-soft: #f8f8f8;
@@ -8,45 +10,74 @@
   --vt-c-black-soft: #222222;
   --vt-c-black-mute: #282828;
 
-  --vt-c-indigo: #2c3e50;
+  /* --vt-c-indigo: #2c3e50; */ /* Joomak 주 색상으로 대체 고려 */
 
   --vt-c-divider-light-1: rgba(60, 60, 60, 0.29);
   --vt-c-divider-light-2: rgba(60, 60, 60, 0.12);
   --vt-c-divider-dark-1: rgba(84, 84, 84, 0.65);
   --vt-c-divider-dark-2: rgba(84, 84, 84, 0.48);
 
-  --vt-c-text-light-1: var(--vt-c-indigo);
-  --vt-c-text-light-2: rgba(60, 60, 60, 0.66);
-  --vt-c-text-dark-1: var(--vt-c-white);
-  --vt-c-text-dark-2: rgba(235, 235, 235, 0.64);
+  /* --vt-c-text-light-1: var(--vt-c-indigo); */ /* Joomak 텍스트 색상으로 대체 고려 */
+  /* --vt-c-text-light-2: rgba(60, 60, 60, 0.66); */
+
+  /* --vt-c-text-dark-1: var(--vt-c-white); */
+  /* --vt-c-text-dark-2: rgba(235, 235, 235, 0.64); */
 }
 
-/* semantic color variables for this project */
+/* Joomak 디자인 시스템 색상 변수 */
 :root {
-  --color-background: var(--vt-c-white);
-  --color-background-soft: var(--vt-c-white-soft);
-  --color-background-mute: var(--vt-c-white-mute);
+  /* Primary Colors (파란색 계열) */
+  --joomak-primary: #3A5FCD;        /* 예시: Joomak 메인 파란색 */
+  --joomak-primary-dark: #2C4AA8;   /* 예시: 더 어두운 파란색 (호버 등) */
+  --joomak-primary-light: #6B89E8;  /* 예시: 더 밝은 파란색 */
 
-  --color-border: var(--vt-c-divider-light-2);
-  --color-border-hover: var(--vt-c-divider-light-1);
+  /* Accent Colors (주황색/금색 계열) */
+  --joomak-accent: #FFA500;         /* 예시: Joomak 강조 주황색 */
+  --joomak-accent-dark: #E69500;    /* 예시: 더 어두운 주황색 (호버 등) */
 
-  --color-heading: var(--vt-c-text-light-1);
-  --color-text: var(--vt-c-text-light-1);
+  /* Neutral Colors */
+  --joomak-background-main: #F0F2F5; /* 전체 페이지 배경 */
+  --joomak-surface: #FFFFFF;          /* 카드, 헤더 등 표면 */
+  --joomak-border-subtle: #DDE2E1;    /* 은은한 구분선 */
+  --joomak-border-strong: #C0C6C5;   /* 조금 더 강한 구분선 */
 
-  --section-gap: 160px;
+  /* Text Colors */
+  --joomak-text-strong: #212529;    /* 제목 등 강조 텍스트 (진한 회색) */
+  --joomak-text-body: #495057;      /* 본문 텍스트 (회색) */
+  --joomak-text-muted: #6C757D;     /* 보조/흐린 텍스트 */
+  --joomak-text-on-primary: var(--vt-c-white); /* 파란 배경 위 텍스트 */
+  --joomak-text-on-accent: var(--vt-c-white);  /* 주황 배경 위 텍스트 */
+
+  /* 기존 Vue 의미론적 변수를 Joomak 테마로 매핑 */
+  --color-background: var(--joomak-background-main);
+  --color-background-soft: var(--vt-c-white-soft); /* 필요시 Joomak 변수로 교체 */
+  --color-background-mute: var(--vt-c-white-mute); /* 필요시 Joomak 변수로 교체 */
+
+  --color-border: var(--joomak-border-subtle);
+  --color-border-hover: var(--joomak-border-strong);
+
+  --color-heading: var(--joomak-text-strong);
+  --color-text: var(--joomak-text-body);
+
+  --section-gap: 160px; /* 기존 값 유지 또는 조정 */
 }
 
+/* 다크 모드 시 Joomak 색상 변수 (선택 사항 - 우선 라이트 모드부터 적용) */
 @media (prefers-color-scheme: dark) {
   :root {
-    --color-background: var(--vt-c-black);
-    --color-background-soft: var(--vt-c-black-soft);
-    --color-background-mute: var(--vt-c-black-mute);
+    --joomak-primary: #6B89E8; /* 다크모드에선 밝은 파랑이 더 잘 보일 수 있음 */
+    --joomak-primary-dark: #3A5FCD;
+    --joomak-accent: #FFB74D;  /* 다크모드 강조색 */
 
-    --color-border: var(--vt-c-divider-dark-2);
-    --color-border-hover: var(--vt-c-divider-dark-1);
+    --joomak-background-main: var(--vt-c-black-soft); /* 어두운 배경 */
+    --joomak-surface: var(--vt-c-black-mute);     /* 어두운 카드 표면 */
+    --joomak-border-subtle: var(--vt-c-divider-dark-2);
+    --joomak-border-strong: var(--vt-c-divider-dark-1);
 
-    --color-heading: var(--vt-c-text-dark-1);
-    --color-text: var(--vt-c-text-dark-2);
+    --joomak-text-strong: var(--vt-c-white-soft);
+    --joomak-text-body: var(--vt-c-white-mute);
+    --joomak-text-muted: rgba(235, 235, 235, 0.64);
+    --joomak-text-on-primary: var(--vt-c-black);
   }
 }
 
@@ -55,18 +86,21 @@
 *::after {
   box-sizing: border-box;
   margin: 0;
-  font-weight: normal;
+  /* font-weight: normal; */ /* 폰트에 따라 기본 normal 유지 또는 삭제 */
 }
 
 body {
   min-height: 100vh;
-  color: var(--color-text);
-  background: var(--color-background);
+  color: var(--color-text); /* Joomak 텍스트 색상으로 자동 적용됨 */
+  background: var(--color-background); /* Joomak 배경색으로 자동 적용됨 */
   transition:
-    color 0.5s,
-    background-color 0.5s;
+    color 0.3s,
+    background-color 0.3s; /* 부드러운 전환 효과 */
   line-height: 1.6;
+  /* 새 폰트 적용 (예: 'Inter' 또는 한국어 환경에 맞는 'Pretendard', 'Noto Sans KR') */
+  /* font-family 값은 실제 사용할 폰트로 교체해주세요. */
   font-family:
+    'Pretendard', /* 한국어 우선 */
     Inter,
     -apple-system,
     BlinkMacSystemFont,
@@ -79,7 +113,7 @@ body {
     'Droid Sans',
     'Helvetica Neue',
     sans-serif;
-  font-size: 15px;
+  font-size: 16px; /* 기본 폰트 크기 조정 (예: 16px) */
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;

@@ -1,1 +1,1 @@
-# accounts/views/__init__.py
+# Back/accounts/views/__init__.py

@@ -1,4 +1,4 @@
-# accounts/api/urls.py
+# Back/accounts/api/urls.py
 
 from django.urls import path
 from rest_framework_simplejwt.views import (

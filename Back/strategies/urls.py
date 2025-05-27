@@ -1,4 +1,4 @@
-# strategies/urls.py
+# Back/strategies/urls.py
 from django.urls import path
 from . import views 
 

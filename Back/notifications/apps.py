@@ -1,4 +1,4 @@
-# notifications/apps.py
+# Back/notifications/apps.py
 from django.apps import AppConfig
 
 

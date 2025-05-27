@@ -1,4 +1,4 @@
-# financial_products/management/commands/fetch_financial_data.py
+# Back/financial_products/management/commands/fetch_financial_data.py
 import requests
 from django.core.management.base import BaseCommand
 from django.conf import settings

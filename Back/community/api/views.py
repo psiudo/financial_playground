@@ -1,4 +1,4 @@
-# community/api/views.py
+# Back/community/api/views.py
 from rest_framework import viewsets, mixins, permissions, status
 from rest_framework.decorators import action
 from rest_framework.response import Response

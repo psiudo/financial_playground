@@ -1,4 +1,4 @@
-# marketplace/tests.py
+# Back/marketplace/tests.py
 from django.test import TestCase
 
 # Create your tests here.

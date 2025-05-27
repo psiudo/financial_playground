@@ -1,4 +1,4 @@
-# marketplace/api/views.py
+# Back/marketplace/api/views.py
 from rest_framework import generics, permissions, status
 from rest_framework.views import APIView
 from rest_framework.response import Response
