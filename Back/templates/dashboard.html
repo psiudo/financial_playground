@@ -1,0 +1,63 @@
+<!-- back/templates/dashboard.html -->
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+  <h2 class="mb-4">📊 대시보드</h2>
+
+  <!-- 인기 커뮤니티 글 -->
+  <div class="mb-5">
+    <h4 class="mb-3">🔥 인기 커뮤니티 글</h4>
+    <div class="row row-cols-1 row-cols-md-3 g-3">
+      {% for post in popular_posts %}
+        <div class="col">
+          <div class="card h-100 shadow-sm">
+            <div class="card-body">
+              <h5 class="card-title">{{ post.title }}</h5>
+              <p class="card-text text-truncate">{{ post.content|truncatechars:100 }}</p>
+            </div>
+            <div class="card-footer d-flex justify-content-between">
+              <small class="text-muted">작성자: {{ post.author.username }}</small>
+              <small class="text-muted">총 반응: {{ post.total_reactions }}</small>
+            </div>
+            <a href="{% url 'community:post_detail' post.id %}" class="stretched-link"></a>
+          </div>
+        </div>
+      {% empty %}
+        <p>아직 인기글이 없습니다.</p>
+      {% endfor %}
+    </div>
+  </div>
+
+  <!-- 나의 관심 종목 수익률 -->
+  <div>
+    <h4 class="mb-3">💼 내 관심 종목 수익률</h4>
+    <div class="row row-cols-1 row-cols-md-2 g-3">
+      {% for info in sorted_stocks %}
+        <div class="col">
+          <div class="card h-100 border-success shadow-sm">
+            <div class="card-body">
+              <h5 class="card-title">{{ info.stock.company_name }}</h5>
+              <p class="card-text mb-1">수익률 추정치: <strong>{{ info.profit_rate }}%</strong></p>
+              <p class="card-text text-muted small">종목 코드: {{ info.stock.stock_code }}</p>
+              {% if info.analysis.summary %}
+                <hr>
+                <p class="card-text text-truncate">{{ info.analysis.summary|truncatechars:100 }}</p>
+              {% endif %}
+              {% if info.analysis.keywords %}
+                <div class="mt-2">
+                  {% for keyword in info.analysis.keywords %}
+                    <span class="badge bg-primary">{{ keyword }}</span>
+                  {% endfor %}
+                </div>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+      {% empty %}
+        <p>관심 종목 분석 결과가 없습니다.</p>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+{% endblock %}

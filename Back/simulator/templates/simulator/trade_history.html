@@ -1,0 +1,36 @@
+<!-- back/simulator/templates/simulator/trade_history.html -->
+{% extends 'base.html' %}
+{% load simulator_extras %}
+
+{% block content %}
+<h2>거래 내역</h2>
+
+<table border="1" cellpadding="5">
+  <thead>
+    <tr>
+      <th>날짜</th>
+      <th>종목명</th>
+      <th>거래 유형</th>
+      <th>수량</th>
+      <th>가격</th>
+      <th>총액</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for trade in trades %}
+    <tr>
+      <td>{{ trade.created_at|date:"Y-m-d H:i" }}</td>
+      <td>{{ trade.stock_name }}</td>
+      <td>{{ trade.get_trade_type_display }}</td>
+      <td>{{ trade.quantity }}</td>
+      <td>{{ trade.price|intcomma }}원</td>
+      <td>{{ trade.price|mul:trade.quantity|intcomma }}원</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+<hr>
+
+<a href="{% url 'simulator:my_portfolio' %}">← 포트폴리오로 돌아가기</a>
+{% endblock %}

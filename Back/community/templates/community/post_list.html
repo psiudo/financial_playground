@@ -1,0 +1,23 @@
+<!-- back/community/templates/community/post_list.html -->
+{% extends "base.html" %}
+
+{% block content %}
+
+<h1>커뮤니티 게시판</h1>
+
+<a href="{% url 'community:post_create' %}">➕ 글쓰기</a>
+
+<ul>
+  {% for post in posts %}
+    <li>
+      <a href="{% url 'community:post_detail' post.id %}">
+        {{ post.title }} ({{ post.reactions.count }})
+      </a> - {{ post.author.username }} / {{ post.created_at|date:"Y-m-d H:i" }}
+    </li>
+  {% empty %}
+    <li>아직 게시글이 없습니다.</li>
+  {% endfor %}
+</ul>
+
+
+{% endblock content %}

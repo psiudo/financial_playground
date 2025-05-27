@@ -1,0 +1,58 @@
+<!-- back/insight/templates/insight/profile.html -->
+{% extends "base.html" %}
+
+{% block content %}
+<h2 class="mb-4">📂 내 관심 종목</h2>
+
+<!-- 종목 추가 폼 -->
+<form method="post" class="row g-3 mb-4">
+  {% csrf_token %}
+  <div class="col-auto">
+    {{ form.company_name }}
+  </div>
+  <div class="col-auto">
+    <button type="submit" class="btn btn-primary">➕ 추가</button>
+  </div>
+</form>
+
+<!-- 종목 그리드 -->
+<div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 g-3">
+  {% for stock in stocks %}
+    <div class="col">
+      <div class="card h-100 shadow-sm">
+        <div class="card-body d-flex flex-column">
+          <h5 class="card-title mb-3">{{ stock.company_name }}</h5>
+
+          <div class="mt-auto">
+            <!-- 댓글 수집 -->
+            <a href="{% url 'insight:collect_comments' stock.id %}"
+               class="btn btn-primary btn-sm me-2 load-spin"
+               data-spin="{{ stock.id }}">🔍 댓글 보러가기</a>
+
+            <!-- 로딩 스피너 -->
+            <span id="spin-{{ stock.id }}"
+                  class="spinner-border spinner-border-sm align-middle d-none"
+                  role="status" aria-hidden="true"></span>
+
+            <!-- 종목 삭제 -->
+            <a href="{% url 'insight:delete_stock' stock.id %}"
+               class="btn btn-outline-danger btn-sm ms-2">🗑 삭제</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  {% empty %}
+    <p>관심 종목이 없습니다. 위 폼에서 종목을 추가해 보세요!</p>
+  {% endfor %}
+</div>
+
+<script>
+  // 버튼 누르면 스피너 표시
+  document.querySelectorAll('.load-spin').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const id = btn.dataset.spin;
+      document.getElementById(`spin-${id}`).classList.remove('d-none');
+    });
+  });
+</script>
+{% endblock %}

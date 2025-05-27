@@ -1,0 +1,20 @@
+<!-- back/community/templates/community/post_form.html -->
+{% extends "base.html" %}
+
+{% block content %}
+
+<h2>글 작성</h2>
+
+<form method="POST">
+  {% csrf_token %}
+  {{ form.as_p }}
+  <button type="submit">등록</button>
+</form>
+
+<a href="{% url 'community:post_list' %}">← 목록으로</a>
+
+
+{% endblock content %}
+
+
+

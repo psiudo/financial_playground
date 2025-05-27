@@ -1,0 +1,106 @@
+<!-- back/insight/templates/insight/analysis_result.html -->
+{% extends "base.html" %}
+{% load humanize %}          {# 숫자에 , 찍어주기 등 #}
+{% block content %}
+
+<div class="container my-4">
+
+  <!-- ────────── 헤더 ────────── -->
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h2 class="mb-0">{{ stock.company_name }} 댓글</h2>
+
+    <div>
+      <button class="btn btn-secondary me-2"
+              onclick="location.href='{% url 'insight:refresh_comments' stock.id %}'">
+        🔄 댓글 새로고침
+      </button>
+
+      <form class="d-inline" method="post"
+            action="{% url 'insight:perform_analysis' stock.id %}">
+        {% csrf_token %}
+        <button id="analyzeBtn"
+                class="btn btn-primary"
+                {% if not analysis.batch_ready %}disabled{% endif %}>
+          🧠 감정 분석하기
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- ────────── 배치 준비 상태 ────────── -->
+  {% if not analysis.batch_ready %}
+    <div id="waitMsg" class="alert alert-warning py-2">
+      배치 준비 중입니다… 잠시만 기다려 주세요.
+    </div>
+  {% endif %}
+
+  <!-- ────────── 댓글 표 ────────── -->
+  <table class="table table-striped align-middle">
+    <thead class="table-light">
+      <tr>
+        <th style="width: 140px">토스 유저</th>
+        <th>댓글 내용</th>
+        <th class="text-end" style="width: 90px">공감</th>
+        <th style="width: 120px">작성일</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for c in analysis.comments.all %}
+        <tr>
+          <td>{{ c.author }}</td>
+          <td>{{ c.content|linebreaksbr }}</td>
+          <td class="text-end">{{ c.likes|intcomma }}</td>
+          <td>{{ c.written_at }}</td>
+        </tr>
+      {% empty %}
+        <tr>
+          <td colspan="4" class="text-center text-muted">댓글이 없습니다.</td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <!-- ────────── 분석 결과 ────────── -->
+  {% if analysis.summary %}
+    <hr>
+    <h4 class="mt-4">✍️ 요약</h4>
+    <p>{{ analysis.summary }}</p>
+
+    <h5 class="mt-3">🏷 키워드</h5>
+    {% for kw in analysis.keywords %}
+      <span class="badge bg-info text-dark me-1">{{ kw }}</span>
+    {% endfor %}
+
+    <h5 class="mt-3">📊 감정 통계</h5>
+    <ul class="list-inline">
+      {% for k, v in analysis.sentiment_stats.items %}
+        <li class="list-inline-item">
+          <span class="badge bg-light text-dark">{{ k }}: {{ v|intcomma }}</span>
+        </li>
+      {% endfor %}
+    </ul>
+  {% endif %}
+</div>
+
+<!-- ────────── 폴링 스크립트 ────────── -->
+<script>
+{% if not analysis.batch_ready %}
+  const btn  = document.getElementById("analyzeBtn");
+  const wait = document.getElementById("waitMsg");
+
+  const poll = setInterval(() => {
+    fetch("{% url 'insight:analysis_status' stock.id %}")
+      .then(r => r.json())
+      .then(d => {
+        if (d.ready) {
+          btn.disabled = false;
+          wait.classList.replace('alert-warning', 'alert-success');
+          wait.textContent = "배치 완료! 감정 분석을 실행할 수 있습니다.";
+          clearInterval(poll);
+        }
+      });
+  }, 1500);
+{% endif %}
+</script>
+
+{% endblock %}

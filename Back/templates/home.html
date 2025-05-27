@@ -1,0 +1,55 @@
+<!-- back/templates/home.html -->
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container mt-5">
+  <div class="text-center mb-4">
+    <h1 class="fw-bold">📊 Stock Insight</h1>
+    <p class="text-muted">AI 기반 주식 분석과 커뮤니티 반응을 하나로</p>
+  </div>
+
+  <div class="row g-4">
+    <div class="col-md-6">
+      <div class="card h-100 shadow-sm">
+        <div class="card-body">
+          <h5 class="card-title">🗣️ 커뮤니티</h5>
+          <p class="card-text">다양한 투자자들과의 소통 공간</p>
+          <a href="{% url 'community:post_list' %}" class="btn btn-outline-primary">바로 가기</a>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-md-6">
+      <div class="card h-100 shadow-sm">
+        <div class="card-body">
+          <h5 class="card-title">📈 주식 분석</h5>
+          <p class="card-text">댓글 기반 AI 감정 분석 및 종목 인사이트</p>
+          <a href="{% url 'stocks:profile' %}" class="btn btn-outline-success">내 종목 관리</a>
+        </div>
+      </div>
+    </div>
+
+    {% if not user.is_authenticated %}
+    <div class="col-md-6">
+      <div class="card h-100 shadow-sm">
+        <div class="card-body">
+          <h5 class="card-title">🔐 로그인</h5>
+          <p class="card-text">서비스 이용을 위해 로그인하세요</p>
+          <a href="{% url 'accounts:login' %}" class="btn btn-outline-dark">로그인</a>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-md-6">
+      <div class="card h-100 shadow-sm">
+        <div class="card-body">
+          <h5 class="card-title">📝 회원가입</h5>
+          <p class="card-text">아직 계정이 없다면 지금 시작하세요</p>
+          <a href="{% url 'accounts:signup' %}" class="btn btn-outline-secondary">회원가입</a>
+        </div>
+      </div>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

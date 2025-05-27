@@ -1,0 +1,145 @@
+<!-- back/community/templates/community/post_detail.html -->
+{% extends "base.html" %}
+
+{% block content %}
+
+<h2>{{ post.title }}</h2>
+<p><strong>작성자:</strong> {{ post.author.username }}</p>
+<p><strong>작성일:</strong> {{ post.created_at|date:"Y-m-d H:i" }}</p>
+<hr>
+<p>{{ post.content }}</p>
+<hr>
+
+<!-- 반응 버튼 -->
+<form action="{% url 'community:toggle_reaction' post.id 'like' %}" method="POST" style="display:inline;">
+  {% csrf_token %}
+  <button type="submit" {% if user.is_authenticated and 'like' in user_reaction_types %}style="font-weight:bold;"{% endif %}>
+    👍 좋아요 ({{ reaction_counts.like }})
+  </button>
+</form>
+
+<form action="{% url 'community:toggle_reaction' post.id 'useful' %}" method="POST" style="display:inline;">
+  {% csrf_token %}
+  <button type="submit" {% if user.is_authenticated and 'useful' in user_reaction_types %}style="font-weight:bold;"{% endif %}>
+    💡 유용해요 ({{ reaction_counts.useful }})
+  </button>
+</form>
+
+<form action="{% url 'community:toggle_reaction' post.id 'sad' %}" method="POST" style="display:inline;">
+  {% csrf_token %}
+  <button type="submit" {% if user.is_authenticated and 'sad' in user_reaction_types %}style="font-weight:bold;"{% endif %}>
+    😢 슬퍼요 ({{ reaction_counts.sad }})
+  </button>
+</form>
+
+<form action="{% url 'community:toggle_reaction' post.id 'hard' %}" method="POST" style="display:inline;">
+  {% csrf_token %}
+  <button type="submit" {% if user.is_authenticated and 'hard' in user_reaction_types %}style="font-weight:bold;"{% endif %}>
+    😖 어려워요 ({{ reaction_counts.hard }})
+  </button>
+</form>
+
+<hr>
+
+<!-- 댓글 목록 -->
+<h3>댓글 목록</h3>
+
+{% for comment in top_level_comments %}
+  <div style="margin-bottom:10px;">
+    <strong>{{ comment.author.username }}</strong> ({{ comment.created_at|date:"Y-m-d H:i" }})<br>
+
+    {% if comment.id == edit_comment_id %}
+      <form method="post" action="{% url 'community:comment_update' comment.id %}">
+        {% csrf_token %}
+        <input type="text" name="content" value="{{ comment.content }}" size="50">
+        <button type="submit">수정 완료</button>
+        <a href="{% url 'community:post_detail' post.id %}">취소</a>
+      </form>
+    {% else %}
+      <p>{{ comment.content }}</p>
+
+      {% if user.is_authenticated %}
+        <form method="get" action="{% url 'community:post_detail' post.id %}" style="display:inline;">
+          <input type="hidden" name="edit_comment_id" value="{{ comment.id }}">
+          <button type="submit">수정</button>
+        </form>
+
+        <form method="post" action="{% url 'community:comment_delete' comment.id %}" style="display:inline;">
+          {% csrf_token %}
+          <button type="submit">삭제</button>
+        </form>
+
+        <form method="post" action="{% url 'community:comment_toggle_like' comment.id %}" style="display:inline;">
+          {% csrf_token %}
+          <button type="submit">❤️ {{ comment.reactions.count }}</button>
+        </form>
+      {% endif %}
+    {% endif %}
+
+    <!-- 대댓글 -->
+    {% for reply in comment.replies.all %}
+      <div style="margin-left:20px; margin-top:5px;">
+        ↳ <strong>{{ reply.author.username }}</strong> ({{ reply.created_at|date:"Y-m-d H:i" }})<br>
+
+        {% if reply.id == edit_comment_id %}
+          <form method="post" action="{% url 'community:comment_update' reply.id %}">
+            {% csrf_token %}
+            <input type="text" name="content" value="{{ reply.content }}" size="50">
+            <button type="submit">수정 완료</button>
+            <a href="{% url 'community:post_detail' post.id %}">취소</a>
+          </form>
+        {% else %}
+          <p>{{ reply.content }}</p>
+
+          {% if user.is_authenticated %}
+            <form method="get" action="{% url 'community:post_detail' post.id %}" style="display:inline;">
+              <input type="hidden" name="edit_comment_id" value="{{ reply.id }}">
+              <button type="submit">수정</button>
+            </form>
+
+            <form method="post" action="{% url 'community:comment_delete' reply.id %}" style="display:inline;">
+              {% csrf_token %}
+              <button type="submit">삭제</button>
+            </form>
+
+            <form method="post" action="{% url 'community:comment_toggle_like' reply.id %}" style="display:inline;">
+              {% csrf_token %}
+              <button type="submit">❤️ {{ reply.reactions.count }}</button>
+            </form>
+          {% endif %}
+        {% endif %}
+      </div>
+    {% endfor %}
+
+    {% if user.is_authenticated %}
+      <div style="margin-left:20px; margin-top:10px;">
+        <form method="post" action="{% url 'community:comment_create' %}">
+          {% csrf_token %}
+          <input type="hidden" name="post" value="{{ post.id }}">
+          <input type="hidden" name="parent" value="{{ comment.id }}">
+          <textarea name="content" rows="2" cols="40" placeholder="답글을 입력하세요"></textarea><br>
+          <button type="submit">답글 작성</button>
+        </form>
+      </div>
+    {% endif %}
+  </div>
+{% empty %}
+  <p>아직 댓글이 없습니다.</p>
+{% endfor %}
+
+<hr>
+
+<!-- 최상위 댓글 작성 -->
+{% if user.is_authenticated %}
+<h3>댓글 작성</h3>
+<form method="post" action="{% url 'community:comment_create' %}">
+  {% csrf_token %}
+  <input type="hidden" name="post" value="{{ post.id }}">
+  <textarea name="content" rows="3" cols="50" placeholder="댓글을 입력하세요"></textarea><br>
+  <button type="submit">댓글 작성</button>
+</form>
+{% else %}
+<p>댓글을 작성하려면 로그인하세요.</p>
+{% endif %}
+
+{% endblock content %}

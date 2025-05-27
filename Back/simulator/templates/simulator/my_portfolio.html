@@ -1,0 +1,64 @@
+<!-- back/simulator/templates/simulator/my_portfolio.html -->
+{% extends "base.html" %}
+{% load simulator_extras humanize %}
+
+{% block content %}
+<h2>내 가상 포트폴리오</h2>
+
+<p>잔고: {{ portfolio.cash_balance|intcomma }} 원</p>
+
+<h3>보유 주식</h3>
+<table border="1">
+    <tr>
+        <th>종목명</th>
+        <th>수량</th>
+        <th>구매가</th>
+        <th>현재가</th>
+        <th>구매총액</th>
+        <th>현재총액</th>
+        <th>수익률</th>
+        <th>매도</th>
+    </tr>
+    {% for trade in trades %}
+    <tr>
+        <td>{{ trade.stock.company_name }}</td>
+        <td>{{ trade.quantity }}</td>
+        <td>{{ trade.price|intcomma }}</td>
+        <td>{{ trade.current_price|intcomma }}</td>
+        <td>{{ trade.quantity|mul:trade.price|intcomma }}</td>
+        <td>{{ trade.quantity|mul:trade.current_price|intcomma }}</td>
+        <td>{{ trade.profit_rate|floatformat:2 }}%</td>
+        <td>
+            <form method="post" action="{% url 'simulator:sell_stock' trade.id %}">
+                {% csrf_token %}
+                <input type="number" name="price" placeholder="판매가격" required>
+                <button type="submit">매도</button>
+            </form>
+        </td>
+    </tr>
+    {% empty %}
+    <tr><td colspan="8">보유한 주식이 없습니다.</td></tr>
+    {% endfor %}
+</table>
+
+<hr>
+
+<h3>주식 매수</h3>
+<form method="post" action="{% url 'simulator:buy_stock' %}">
+    {% csrf_token %}
+    <label>종목명:</label>
+    <select name="stock_name" required>
+        {% for stock in available_stocks %}
+            <option value="{{ stock }}">{{ stock }}</option>
+        {% endfor %}
+    </select>
+    <br><br>
+
+    <label>수량:</label>
+    <input type="number" name="quantity" placeholder="수량" required>
+    <br><br>
+
+    <button type="submit">매수</button>
+</form>
+
+{% endblock %}

@@ -1,0 +1,22 @@
+<!-- back/simulator/templates/simulator/sell_stock.html -->
+{% extends "base.html" %}
+
+{% block content %}
+<h2>주식 매도</h2>
+
+{% if error_message %}
+<p style="color:red;">{{ error_message }}</p>
+{% endif %}
+
+<form method="post">
+    {% csrf_token %}
+    <label>판매 가격(원):</label>
+    <input type="number" name="price" placeholder="판매가격" required>
+
+    <button type="submit">매도하기</button>
+</form>
+
+<hr>
+
+<a href="{% url 'simulator:my_portfolio' %}">← 포트폴리오로 돌아가기</a>
+{% endblock %}

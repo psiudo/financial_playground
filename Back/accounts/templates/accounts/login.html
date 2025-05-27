@@ -1,0 +1,19 @@
+<!-- back/accounts/templates/accounts/login.html -->
+<!-- login.html -->
+<h2>로그인</h2>
+
+<form method="post">
+  {% csrf_token %}
+  {{ form.as_p }}
+  <button type="submit">로그인</button>
+</form>
+
+<!-- 소셜 로그인 버튼 추가 -->
+<hr>
+<a href="{% url 'accounts:google_login' %}">
+  <button>구글로 로그인</button>
+</a>
+
+<a href="{% url 'accounts:kakao_login' %}">
+  <button>카카오로 로그인</button>
+</a>

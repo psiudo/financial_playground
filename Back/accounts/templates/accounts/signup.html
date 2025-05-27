@@ -1,0 +1,12 @@
+<!-- back/accounts/templates/accounts/signup.html -->
+{% extends "base.html" %}
+{% block content %}
+<h2>회원가입</h2>
+<form method="post">
+  {% csrf_token %}
+  {{ form.as_p }}
+  <button type="submit">가입</button>
+</form>
+<a href="{% url 'accounts:login' %}">이미 계정이 있나요?</a>
+
+{% endblock content %}
