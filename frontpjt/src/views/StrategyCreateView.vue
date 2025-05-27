@@ -1,4 +1,3 @@
-<!-- frontpjt/src/views/StrategyCreateView.vue -->
 <template>
   <div class="strategy-create-view">
     <h1>새 투자 전략 만들기</h1>
@@ -13,8 +12,9 @@
       </div>
       <div class="form-group">
         <label for="rule_json">규칙 (JSON 형식, 필수):</label>
-        <textarea id="rule_json" v-model="strategy.rule_json_text" rows="10" placeholder='예시: {"buy_conditions": [{"indicator": "PER", "value": 10, "operator": "<"}]}' required></textarea>
+        <textarea id="rule_json" v-model="strategy.rule_json_text" rows="10" placeholder='예시: {"buy_conditions": [{"indicator": "PER", "value": 10, "operator": "<="}]}' required></textarea>
         <small v-if="jsonError" class="error-message json-error">{{ jsonError }}</small>
+        <small class="form-text">매수/매도 조건을 JSON 형식으로 입력합니다. 복잡한 규칙도 정의할 수 있습니다.</small>
       </div>
       <div class="form-group checkbox-group">
         <input type="checkbox" id="is_public" v-model="strategy.is_public" />
@@ -26,11 +26,15 @@
       </div>
       <div class="form-group" v-if="strategy.is_paid">
         <label for="price_point">판매 가격 (포인트, 필수):</label>
-        <input type="number" id="price_point" v-model.number="strategy.price_point" min="0" :required="strategy.is_paid" />
+        <input type="number" id="price_point" v-model.number="strategy.price_point" min="1" :required="strategy.is_paid" />
+         <small class="form-text">유료 전략으로 설정 시, 1 이상의 판매 가격을 입력해야 합니다.</small>
       </div>
 
-      <button type="submit" :disabled="creating">전략 생성</button>
-      <p v-if="createError" class="error-message">{{ createError }}</p>
+      <button type="submit" :disabled="creating" class="submit-btn">
+        <span v-if="creating" class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+        {{ creating ? '생성 중...' : '전략 생성' }}
+      </button>
+      <p v-if="createError" class="error-message api-error">{{ createError }}</p>
     </form>
   </div>
 </template>
@@ -44,11 +48,11 @@ const router = useRouter();
 const strategy = ref({
   name: '',
   description: '',
-  rule_json_text: '', // 사용자가 입력할 JSON 문자열
-  rule_json: {},      // 실제 API로 보낼 파싱된 JSON 객체
+  rule_json_text: '', 
+  rule_json: {},     
   is_public: false,
   is_paid: false,
-  price_point: 0,
+  price_point: 0, // 유료 선택 시 1 이상이어야 함
 });
 const creating = ref(false);
 const createError = ref(null);
@@ -59,7 +63,6 @@ const handleCreateStrategy = async () => {
   createError.value = null;
   jsonError.value = null;
 
-  // Rule JSON 파싱 및 유효성 검사
   try {
     strategy.value.rule_json = JSON.parse(strategy.value.rule_json_text);
   } catch (e) {
@@ -68,18 +71,15 @@ const handleCreateStrategy = async () => {
     return;
   }
 
-  // 유료 전략인데 가격이 0이거나 설정 안 된 경우 방지 (모델 기본값이 0이므로, is_paid 체크 시에는 0 초과여야 함)
   if (strategy.value.is_paid && (!strategy.value.price_point || strategy.value.price_point <= 0)) {
-      createError.value = '유료 전략은 판매 가격(포인트)을 0보다 큰 값으로 설정해야 합니다.';
+      createError.value = '유료 전략은 판매 가격(포인트)을 1 이상의 값으로 설정해야 합니다.';
       creating.value = false;
       return;
   }
-  if (!strategy.value.is_paid) { // 유료가 아니면 가격은 0
+  if (!strategy.value.is_paid) {
       strategy.value.price_point = 0;
   }
 
-
-  // API로 전송할 데이터 준비 (rule_json_text 대신 rule_json 사용)
   const payload = {
       name: strategy.value.name,
       description: strategy.value.description,
@@ -90,23 +90,33 @@ const handleCreateStrategy = async () => {
   };
 
   try {
-    const response = await api.post('/strategies/strategies/', payload); // 백엔드 API 경로 확인
+    const response = await api.post('/strategies/strategies/', payload);
     alert('새로운 투자 전략이 성공적으로 생성되었습니다!');
-    router.push({ name: 'StrategyListView' }); // 나의 전략 목록 페이지로 이동 (라우터 이름 확인 필요)
+    // 생성된 전략의 상세 페이지로 이동하거나, 목록 페이지로 이동
+    if (response.data && response.data.id) {
+        router.push({ name: 'StrategyDetailView', params: { strategyId: response.data.id } });
+    } else {
+        router.push({ name: 'StrategyListView' });
+    }
   } catch (err) {
-    console.error('전략 생성 실패:', err);
+    console.error('전략 생성 실패:', err.response?.data || err.message);
     if (err.response && err.response.data) {
-        // DRF 유효성 검사 오류 처리
         let errorMessage = '전략 생성에 실패했습니다. 입력 내용을 확인해주세요.';
         const errors = err.response.data;
-        const errorKeys = Object.keys(errors);
-        if (errorKeys.length > 0) {
-            const firstErrorField = errorKeys[0];
-            errorMessage = `${firstErrorField}: ${errors[firstErrorField][0]}`;
+        const errorMessages = [];
+        for (const key in errors) {
+            if (Array.isArray(errors[key])) {
+                errorMessages.push(`${key}: ${errors[key].join(', ')}`);
+            } else {
+                errorMessages.push(`${key}: ${errors[key]}`);
+            }
+        }
+        if (errorMessages.length > 0) {
+            errorMessage = errorMessages.join(' | ');
         }
         createError.value = errorMessage;
     } else {
-        createError.value = '전략 생성 중 오류가 발생했습니다.';
+        createError.value = '전략 생성 중 알 수 없는 오류가 발생했습니다.';
     }
   } finally {
     creating.value = false;
@@ -116,57 +126,103 @@ const handleCreateStrategy = async () => {
 
 <style scoped>
 .strategy-create-view {
-  max-width: 600px;
-  margin: 20px auto;
-  padding: 20px;
-  border: 1px solid #ccc;
+  max-width: 700px;
+  margin: 30px auto;
+  padding: 25px;
+  border: 1px solid var(--joomak-border-subtle, #ccc);
   border-radius: 8px;
+  background-color: var(--joomak-surface, #fff);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+}
+.strategy-create-view h1 {
+  text-align: center;
+  color: var(--joomak-text-strong);
+  margin-bottom: 25px;
 }
 .form-group {
-  margin-bottom: 15px;
+  margin-bottom: 20px;
 }
 .form-group label {
   display: block;
-  margin-bottom: 5px;
+  margin-bottom: 8px;
   font-weight: bold;
+  color: var(--joomak-text-body);
 }
 .form-group input[type="text"],
 .form-group input[type="number"],
 .form-group textarea {
   width: 100%;
-  padding: 8px;
-  border: 1px solid #ddd;
+  padding: 10px;
+  border: 1px solid var(--joomak-border-subtle, #ddd);
   border-radius: 4px;
   box-sizing: border-box;
+  font-size: 1rem;
+  color: var(--joomak-text-body);
+  background-color: var(--joomak-background-main); /* 입력 필드 배경 */
+}
+.form-group input[type="text"]:focus,
+.form-group input[type="number"]:focus,
+.form-group textarea:focus {
+  border-color: var(--joomak-primary);
+  box-shadow: 0 0 0 0.2rem rgba(var(--joomak-primary-rgb, 58, 95, 205), 0.25); /* Joomak RGB 변수 필요 */
+  outline: none;
 }
 .form-group textarea {
-    font-family: monospace; /* JSON 가독성을 위해 */
+    font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, Courier, monospace;
+    min-height: 120px;
+}
+.checkbox-group {
+    display: flex;
+    align-items: center;
+}
+.checkbox-group input[type="checkbox"] {
+    margin-right: 8px;
+    width: auto; /* 기본 너비로 */
+    vertical-align: middle;
+    transform: scale(1.1); /* 체크박스 크기 약간 키움 */
 }
 .checkbox-group label {
     font-weight: normal;
-    margin-left: 5px;
+    margin-bottom: 0; /* display:flex로 인해 불필요 */
 }
-.checkbox-group input[type="checkbox"] {
-    vertical-align: middle;
-}
-button[type="submit"] {
-  background-color: #28a745;
-  color: white;
-  padding: 10px 15px;
+.submit-btn {
+  background-color: var(--joomak-primary, #28a745);
+  color: var(--joomak-text-on-primary, white);
+  padding: 12px 20px;
   border: none;
   border-radius: 4px;
   cursor: pointer;
+  font-size: 1.1rem;
+  width: 100%;
+  transition: background-color 0.3s;
 }
-button[type="submit"]:disabled {
+.submit-btn:disabled {
   background-color: #aaa;
+  cursor: not-allowed;
+}
+.submit-btn:hover:not(:disabled) {
+  background-color: var(--joomak-primary-dark);
 }
 .error-message {
-  color: red;
-  margin-top: 5px;
+  color: #dc3545; /* Bootstrap danger color */
+  margin-top: 8px;
   font-size: 0.9em;
 }
 .json-error {
-    margin-top: 2px;
-    font-size: 0.8em;
+  margin-top: 4px;
+  font-size: 0.85em;
+}
+.api-error {
+    margin-top: 15px;
+    padding: 10px;
+    background-color: rgba(220, 53, 69, 0.1); /* 에러 배경 */
+    border: 1px solid rgba(220, 53, 69, 0.2);
+    border-radius: 4px;
+}
+.form-text {
+    font-size: 0.85em;
+    color: var(--joomak-text-muted);
+    display: block;
+    margin-top: 5px;
 }
 </style>

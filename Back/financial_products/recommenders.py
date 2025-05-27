@@ -51,12 +51,12 @@ def _get_product_features_for_scoring(product: FinancialProduct):
             features["min_term"] = min(terms)
             features["max_term"] = max(terms)
         
-        for opt in options_list:
-            if opt.spcl_cnd:
-                keywords = opt.spcl_cnd.lower()
-                for char_to_replace in [',', '.', ';', '(', ')', '/']:
-                    keywords = keywords.replace(char_to_replace, ' ')
-                features["spcl_keywords"].update(keywords.split())
+        # ★ 수정: spcl_cnd는 FinancialProduct 모델의 필드이므로 product 객체에서 직접 가져옵니다.
+        if product.spcl_cnd:
+            keywords = product.spcl_cnd.lower()
+            for char_to_replace in [',', '.', ';', '(', ')', '/']:
+                keywords = keywords.replace(char_to_replace, ' ')
+            features["spcl_keywords"].update(keywords.split())
             
     return features
 
@@ -100,13 +100,15 @@ def _get_product_score_v2(product_features, user_age, user_risk_grade, user_annu
 
     if user_age is not None:
         if 20 <= user_age < 35:
-            if youth_keywords_match:
-                score += 25; reasons.append(f"{next(iter(youth_keywords_match))} 대상 상품")
+            if youth_keywords_match: # ★ 수정: set이 비어있지 않은지 확인
+                keyword_to_add = list(youth_keywords_match)[0] # ★ 수정: 첫 번째 요소 안전하게 가져오기
+                score += 25; reasons.append(f"{keyword_to_add} 대상 상품")
             if min_term_feat is not None and min_term_feat <= 12 : score += 10
         elif user_age >= 50:
-            if senior_keywords_match:
-                score += 20; reasons.append(f"{next(iter(senior_keywords_match))} 맞춤 상품")
-            if product_type_feat == FinancialProduct.DEPOSIT: score += 10
+            if senior_keywords_match: # ★ 수정: set이 비어있지 않은지 확인
+                keyword_to_add = list(senior_keywords_match)[0] # ★ 수정: 첫 번째 요소 안전하게 가져오기
+                score += 20; reasons.append(f"{keyword_to_add} 맞춤 상품")
+            if product_type_feat == FinancialProduct.DEPOSIT: score += 10 # product_type_feat 사용
             if max_term_feat is not None and max_term_feat >= 24: score += 5
             
     # 4. 선호 은행
@@ -125,48 +127,42 @@ def get_advanced_recommendations(user: CustomUser, top_n=5):
     try:
         logger.info(f"Starting advanced recommendations for user: {user.username} (ID: {user.id})")
         
-        # Ensure user profile fields are present
         if not user.birth_date:
-            logger.warning(f"User {user.username} has no birth_date. Cannot calculate age.")
-            # Decide how to handle this: return empty, or proceed without age-based scoring
+            logger.warning(f"User {user.username} has no birth_date. Age-based scoring will be affected.")
         if not user.risk_grade:
-            logger.warning(f"User {user.username} has no risk_grade.")
-            # Decide how to handle this: return empty, or use a default risk_grade
+            logger.warning(f"User {user.username} has no risk_grade. Risk-based scoring will be affected.")
 
         user_age = _calculate_age(user.birth_date)
-        user_risk_grade = user.risk_grade
-        user_annual_income = user.annual_income
+        user_risk_grade = user.risk_grade 
+        user_annual_income = user.annual_income 
         preferred_bank_name = user.preferred_bank
 
         all_products_qs = FinancialProduct.objects.select_related("bank").prefetch_related(
-            Prefetch("options", queryset=ProductOption.objects.order_by('-intr_rate2'))
+            Prefetch("options", queryset=ProductOption.objects.order_by('-intr_rate2')) 
         ).filter(options__isnull=False, bank__isnull=False).distinct()
 
         if not all_products_qs.exists():
             logger.warning("No products available in the database for recommendations.")
             return []
 
-        joined_fin_codes = user.joined_financial_products.values_list('financial_product__fin_prdt_cd', flat=True)
+        joined_fin_codes = user.joined_financial_products.values_list('product__fin_prdt_cd', flat=True)
         
-        # Process all_products_qs into a list of Python objects first to avoid repeated DB hits inside loop
         eligible_products_list = [p for p in list(all_products_qs) if p.fin_prdt_cd not in joined_fin_codes]
 
-
         if not eligible_products_list:
-            logger.info(f"User {user.username} has no eligible products for new recommendations.")
+            logger.info(f"User {user.username} has no eligible products for new recommendations (all joined or no products).")
             return []
             
         similar_user_group_prefs = None 
 
         scored_products = []
-        for product_obj in eligible_products_list: # Iterate over Python list
+        for product_obj in eligible_products_list: 
             product_features = _get_product_features_for_scoring(product_obj)
             score, reason = _get_product_score_v2(
                 product_features, user_age, user_risk_grade, 
                 user_annual_income, preferred_bank_name,
                 similar_user_group_prefs 
             )
-            # logger.debug(f"Product: {product_obj.name}, Score: {score}, Reason: {reason}") # 상세 로그
             if score > 5: 
                 scored_products.append({
                     "product": product_obj,
@@ -181,8 +177,8 @@ def get_advanced_recommendations(user: CustomUser, top_n=5):
             scored_products,
             key=lambda x: (
                 x['score'], 
-                x['features'].get('max_interest_rate2', 0.0), # .get으로 안전하게
-                x['product'].name
+                x['features'].get('max_interest_rate2', 0.0), 
+                x['product'].name 
             ),
             reverse=True
         )
@@ -191,29 +187,31 @@ def get_advanced_recommendations(user: CustomUser, top_n=5):
 
         if len(final_recommendations) < top_n:
             num_needed = top_n - len(final_recommendations)
-            current_product_ids = [item['product'].id for item in final_recommendations]
+            current_product_ids = [item['product'].id for item in final_recommendations] 
             
-            fallback_products_qs = FinancialProduct.objects.annotate(
+            fallback_products_qs = FinancialProduct.objects.select_related("bank").prefetch_related(
+                Prefetch("options", queryset=ProductOption.objects.order_by('-intr_rate2'))
+            ).annotate(
                 annotated_max_intr_rate2=Coalesce(Cast(Max('options__intr_rate2', filter=Q(options__intr_rate2__isnull=False)), FloatField()), Value(0.0))
             ).filter(
                 options__isnull=False, bank__isnull=False
             ).exclude(
-                id__in=current_product_ids
+                id__in=current_product_ids 
             )
-            if joined_fin_codes:
+            if joined_fin_codes: 
                 fallback_products_qs = fallback_products_qs.exclude(fin_prdt_cd__in=joined_fin_codes)
             
             fallback_products_qs = fallback_products_qs.distinct().order_by('-annotated_max_intr_rate2', 'name')
             additional_products = list(fallback_products_qs[:num_needed])
             
             for product_fallback in additional_products:
-                product_features_fallback = _get_product_features_for_scoring(product_fallback)
+                product_features_fallback = _get_product_features_for_scoring(product_fallback) 
                 max_rate_fallback = product_features_fallback.get('max_interest_rate2', 0.0)
-                fallback_reason = f"높은 금리({max_rate_fallback:.2f}%)의 인기 상품입니다."
+                fallback_reason = f"높은 금리({max_rate_fallback:.2f}%)의 인기 상품입니다." 
                 final_recommendations.append({
                     "product": product_fallback,
                     "features": product_features_fallback,
-                    "score": max_rate_fallback * 5, # 점수 차등
+                    "score": max_rate_fallback * 5, 
                     "reason": fallback_reason
                 })
             
@@ -228,4 +226,4 @@ def get_advanced_recommendations(user: CustomUser, top_n=5):
 
     except Exception as e:
         logger.error(f"Critical Error in get_advanced_recommendations for user {user.username}: {e}", exc_info=True)
-        return [] # 오류 발생 시 빈 리스트 반환
+        return []

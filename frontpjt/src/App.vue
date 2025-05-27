@@ -1,16 +1,17 @@
-<!-- frontpjt/src/App.vue -->
 <template>
   <header>
-    <img
-      alt="Vue logo"
-      class="logo"
-      src="@/assets/logo.svg"
-      width="125"
-      height="125"
-    />
+    <RouterLink to="/" class="logo-link">
+      <img
+        alt="Joomak logo"
+        class="logo"
+        src="@/assets/logo.svg"
+        width="125"
+        height="125"
+      />
+    </RouterLink>
 
     <div class="wrapper">
-      <HelloWorld msg="금융 놀이터에 오신 것을 환영합니다!" />
+      <h1 class="site-title">주막에 오신 것을 환영합니다!</h1>
 
       <nav>
         <RouterLink to="/">Home</RouterLink>
@@ -22,9 +23,6 @@
 
         <template v-if="authStore.isAuthenticated">
           <RouterLink :to="{ name: 'profile' }" class="ms-2">프로필</RouterLink>
-        </template>
-
-        <template v-if="authStore.isAuthenticated">
           <a href="#" @click.prevent="handleLogout" class="ms-2 nav-link-button">로그아웃</a>
         </template>
         <template v-else>
@@ -39,22 +37,21 @@
 
 <script setup>
 import { RouterLink, RouterView, useRouter } from 'vue-router';
-import HelloWorld from './components/HelloWorld.vue'; // HelloWorld 컴포넌트 경로
-import { useAuthStore } from '@/stores/authStore';   // authStore 사용
-import { onMounted } from 'vue'; // onMounted 추가
+// HelloWorld 임포트 제거
+// import HelloWorld from './components/HelloWorld.vue';
+import { useAuthStore } from '@/stores/authStore';
+import { onMounted } from 'vue';
 
 const authStore = useAuthStore();
-const router = useRouter(); // useRouter는 페이지 이동 등에 사용될 수 있습니다.
+const router = useRouter();
 
 const handleLogout = () => {
   authStore.logout();
-  // authStore.logout() 내부에서 router.push({ name: 'LoginView' }) 등으로 페이지 이동 처리가 되어있습니다.
+  // authStore.logout() 내부에서 페이지 이동 처리
 };
 
-// App.vue가 마운트될 때 로컬 스토리지에 토큰이 있다면 사용자 정보를 가져오도록 합니다.
-// 이는 페이지 새로고침 시 로그인 상태를 유지하고 사용자 정보를 불러오기 위함입니다.
 onMounted(async () => {
-  if (authStore.token && !authStore.user) { // 토큰은 있는데 사용자 정보가 스토어에 없다면
+  if (authStore.token && !authStore.user) {
     await authStore.fetchUser();
   }
 });
@@ -64,56 +61,74 @@ onMounted(async () => {
 header {
   line-height: 1.5;
   max-height: 100vh;
+  /* Joomak 테마에 맞춰 헤더 배경색이나 구분선 등을 추가할 수 있습니다. */
+  /* 예: border-bottom: 1px solid var(--joomak-border-subtle); */
+  /* padding-bottom: 1rem; */
+}
+
+.logo-link {
+  display: inline-block; /* 로고 크기에 맞게 영역 차지 */
 }
 
 .logo {
   display: block;
-  margin: 0 auto 2rem;
+  margin: 0 auto 2rem; /* 기존 스타일 유지 */
+}
+
+.site-title {
+  /* 필요에 따라 HelloWorld의 h1 스타일과 유사하게 또는 새롭게 정의 */
+  font-weight: 500;
+  font-size: 2.2rem; /* 적절한 크기로 조정 */
+  color: var(--color-heading); /* Joomak 테마의 제목 색상 사용 */
+  text-align: center;
+  margin-bottom: 1.5rem; /* 네비게이션과의 간격 */
 }
 
 nav {
   width: 100%;
   font-size: 12px;
   text-align: center;
-  margin-top: 2rem;
-}
-
-nav a.router-link-exact-active {
-  color: var(--color-text);
-}
-
-nav a.router-link-exact-active:hover {
-  background-color: transparent;
+  margin-top: 1rem; /* site-title과의 간격을 조정했으므로 필요시 재조정 */
 }
 
 nav a {
   display: inline-block;
   padding: 0 1rem;
   border-left: 1px solid var(--color-border);
-  color: var(--color-text); /* 기본 링크 색상 */
-  text-decoration: none; /* 밑줄 제거 */
-}
-
-nav a.router-link-exact-active {
-  color: hsla(160, 100%, 37%, 1); /* 활성 링크 색상 (기존 Vue green) */
-}
-
-nav a:hover {
-  background-color: hsla(160, 100%, 37%, 0.2); /* 호버 시 배경색 */
+  color: var(--color-text); /* Joomak 테마의 본문 텍스트 색상 */
+  text-decoration: none;
+  transition: color 0.3s, background-color 0.3s; /* 부드러운 전환 효과 */
 }
 
 nav a:first-of-type {
-  border: 0;
+  border-left: 0;
 }
 
-/* 로그아웃 링크 및 로그인 링크에 버튼 스타일을 좀 더 명확히 적용하기 위한 클래스 */
+/* 활성 링크 스타일 */
+nav a.router-link-exact-active {
+  color: var(--joomak-primary-dark); /* Joomak 테마의 강조 색상 (더 어둡게) */
+  font-weight: bold; /* 활성 링크 강조 */
+}
+
+nav a.router-link-exact-active:hover {
+  background-color: transparent; /* 활성 링크 호버 시 배경 변경 없음 */
+}
+
+/* 일반 링크 호버 스타일 */
+nav a:not(.router-link-exact-active):not(.nav-link-button):hover {
+  color: var(--joomak-primary); /* Joomak 테마의 기본 강조 색상 */
+  background-color: rgba(var(--joomak-primary-rgb, 58, 95, 205), 0.1); /* Joomak 테마 색상 기반의 은은한 배경 (base.css에 --joomak-primary-rgb 추가 필요) */
+}
+
+
+/* 로그인/로그아웃 버튼 스타일 (기존 스타일 유지) */
 .nav-link-button {
-  padding: 0.375rem 0.75rem; /* Bootstrap 버튼 패딩과 유사하게 */
-  border-radius: 0.25rem;    /* 버튼 모서리 둥글게 */
+  padding: 0.375rem 0.75rem;
+  border-radius: 0.25rem;
   text-decoration: none;
-  color: #0d6efd; /* Bootstrap primary 색상 예시 */
+  color: #0d6efd;
   border: 1px solid #0d6efd;
-  margin-left: 0.5rem; /* 다른 링크와의 간격 */
+  margin-left: 0.5rem;
   transition: color 0.15s ease-in-out, background-color 0.15s ease-in-out, border-color 0.15s ease-in-out;
 }
 .nav-link-button:hover {
@@ -121,9 +136,9 @@ nav a:first-of-type {
   background-color: #0d6efd;
   border-color: #0d6efd;
 }
-/* 로그아웃 버튼에 대한 특별 스타일 (예: 빨간색 계열) */
-nav a[href="#"].nav-link-button { /* 로그아웃 버튼 */
-  color: #dc3545; /* Bootstrap danger 색상 예시 */
+/* 로그아웃 버튼 */
+nav a[href="#"].nav-link-button {
+  color: #dc3545;
   border-color: #dc3545;
 }
 nav a[href="#"].nav-link-button:hover {
@@ -132,30 +147,40 @@ nav a[href="#"].nav-link-button:hover {
   border-color: #dc3545;
 }
 
-
+/* --- 반응형 스타일 --- */
 @media (min-width: 1024px) {
   header {
     display: flex;
-    place-items: center;
+    align-items: center; /* 수직 중앙 정렬 */
     padding-right: calc(var(--section-gap) / 2);
   }
 
+  .logo-link { /* 로고 링크 위치 조정 */
+    margin-right: 2rem;
+  }
   .logo {
-    margin: 0 2rem 0 0;
+    margin: 0; /* 로고 자체의 마진 제거 (부모에서 처리) */
   }
 
   header .wrapper {
     display: flex;
-    place-items: flex-start;
-    flex-wrap: wrap;
+    flex-direction: column; /* 제목과 네비게이션을 수직으로 배치 */
+    align-items: flex-start; /* 왼쪽 정렬 */
+    flex-grow: 1; /* 남은 공간 채우기 */
+  }
+
+  .site-title {
+    text-align: left; /* 데스크탑에서 제목 왼쪽 정렬 */
+    font-size: 2.6rem; /* 데스크탑에서 제목 약간 더 크게 */
+    margin-bottom: 0.5rem; /* 네비게이션과의 간격 줄임 */
   }
 
   nav {
     text-align: left;
-    margin-left: -1rem;
+    margin-left: -1rem; /* 기존 스타일 유지 */
     font-size: 1rem;
-    padding: 1rem 0;
-    margin-top: 1rem;
+    padding: 0.5rem 0; /* 패딩 조정 */
+    margin-top: 0; /* 제목 바로 아래에 오도록 */
   }
 }
 </style>

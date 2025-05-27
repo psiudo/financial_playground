@@ -17,7 +17,7 @@
       </section>
 
       <section class="recommendations-section mb-5">
-        <ProductRecommendationList /> {/* ★ 컴포넌트 사용 */}
+        <ProductRecommendationList />
       </section>
 
       <section class="portfolio-summary mb-5">
