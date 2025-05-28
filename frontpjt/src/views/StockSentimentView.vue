@@ -1,3 +1,4 @@
+<!-- frontpjt/src/views/StockSentimentView.vue -->
 <template>
   <div class="stock-sentiment-view view-container">
     <h2 class="view-title">종목별 투자 심리 분석 (토스 댓글 기반)</h2>

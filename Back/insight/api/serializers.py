@@ -1,3 +1,4 @@
+# Back/insight/api/serializers.py
 from rest_framework import serializers
 # 변경된 임포트: Stock -> InterestStock
 from insight.models import InterestStock, StockAnalysis, Comment 

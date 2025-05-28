@@ -1,3 +1,4 @@
+<!-- frontpjt/src/views/StrategyCreateView.vue -->
 <template>
   <div class="strategy-create-view">
     <h1>새 투자 전략 만들기</h1>
@@ -39,6 +40,7 @@
   </div>
 </template>
 
+
 <script setup>
 import { ref } from 'vue';
 import { useRouter } from 'vue-router';
@@ -49,10 +51,10 @@ const strategy = ref({
   name: '',
   description: '',
   rule_json_text: '', 
-  rule_json: {},     
+  rule_json: {},      
   is_public: false,
   is_paid: false,
-  price_point: 0, // 유료 선택 시 1 이상이어야 함
+  price_point: 0,
 });
 const creating = ref(false);
 const createError = ref(null);
@@ -90,9 +92,9 @@ const handleCreateStrategy = async () => {
   };
 
   try {
-    const response = await api.post('/strategies/strategies/', payload);
+    // ★★★ API 경로 수정: 'v1/' 및 백엔드 urls.py에 정의된 'strategies/' 추가 ★★★
+    const response = await api.post('v1/strategies/strategies/', payload); // 수정된 경로
     alert('새로운 투자 전략이 성공적으로 생성되었습니다!');
-    // 생성된 전략의 상세 페이지로 이동하거나, 목록 페이지로 이동
     if (response.data && response.data.id) {
         router.push({ name: 'StrategyDetailView', params: { strategyId: response.data.id } });
     } else {
@@ -101,18 +103,26 @@ const handleCreateStrategy = async () => {
   } catch (err) {
     console.error('전략 생성 실패:', err.response?.data || err.message);
     if (err.response && err.response.data) {
-        let errorMessage = '전략 생성에 실패했습니다. 입력 내용을 확인해주세요.';
+        let errorMessage = '전략 생성에 실패했습니다. ';
         const errors = err.response.data;
         const errorMessages = [];
-        for (const key in errors) {
-            if (Array.isArray(errors[key])) {
-                errorMessages.push(`${key}: ${errors[key].join(', ')}`);
-            } else {
-                errorMessages.push(`${key}: ${errors[key]}`);
+        if (typeof errors === 'string') {
+            errorMessage = errors;
+        } else if (errors.detail) {
+            errorMessage = errors.detail;
+        } else {
+            for (const key in errors) {
+                if (Array.isArray(errors[key])) {
+                    errorMessages.push(`${key}: ${errors[key].join(', ')}`);
+                } else {
+                    errorMessages.push(`${key}: ${errors[key]}`);
+                }
             }
-        }
-        if (errorMessages.length > 0) {
-            errorMessage = errorMessages.join(' | ');
+            if (errorMessages.length > 0) {
+                errorMessage = errorMessages.join(' | ');
+            } else {
+                 errorMessage += '입력 내용을 확인해주세요.';
+            }
         }
         createError.value = errorMessage;
     } else {
@@ -123,6 +133,7 @@ const handleCreateStrategy = async () => {
   }
 };
 </script>
+
 
 <style scoped>
 .strategy-create-view {

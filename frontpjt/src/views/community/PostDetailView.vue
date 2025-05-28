@@ -1,3 +1,4 @@
+<!-- frontpjt/src/views/community/PostDetailView.vue -->
 <template>
   <div class="post-detail-view" v-if="communityStore.post">
     <h1>{{ communityStore.post.title }}</h1>

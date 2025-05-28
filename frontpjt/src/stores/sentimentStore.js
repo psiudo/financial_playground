@@ -1,3 +1,4 @@
+// frontpjt/src/stores/sentimentStore.js
 import { defineStore } from 'pinia';
 import axios from 'axios';
 

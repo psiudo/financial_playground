@@ -1,3 +1,4 @@
+<!-- frontpjt/src/App.vue -->
 <template>
   <header>
     <RouterLink to="/" class="logo-link" @click="handleLogoOrHomeClick">
@@ -34,28 +35,48 @@
 <script setup>
 import { RouterLink, RouterView, useRouter } from 'vue-router';
 import { useAuthStore } from '@/stores/authStore';
-import { useStockInsightStore } from '@/stores/stockInsightStore'; // 종목 감정 분석 스토어
+import { useStockInsightStore } from '@/stores/stockInsightStore';
 import { onMounted } from 'vue';
 
 const authStore = useAuthStore();
-const stockInsightStore = useStockInsightStore(); // 스토어 사용
+const stockInsightStore = useStockInsightStore();
 const router = useRouter(); 
 
 const handleLogout = () => {
   authStore.logout();
-  stockInsightStore.clearSelectedStockAnalysis(); // 로그아웃 시 관련 상태 초기화
+  // ★★★ stockInsightStore에 clearSelectedStockAnalysis 함수가 정의되어 있다고 가정 ★★★
+  if (typeof stockInsightStore.clearSelectedStockAnalysis === 'function') {
+    stockInsightStore.clearSelectedStockAnalysis();
+  } else {
+    console.warn('stockInsightStore.clearSelectedStockAnalysis is not a function. Check store definition.');
+  }
   router.push({ name: 'home' });
 };
 
 const handleLogoOrHomeClick = () => {
-  stockInsightStore.clearSelectedStockAnalysis(); // 홈/로고 클릭 시 초기화
+  // ★★★ stockInsightStore에 clearSelectedStockAnalysis 함수가 정의되어 있다고 가정 ★★★
+  if (typeof stockInsightStore.clearSelectedStockAnalysis === 'function') {
+    stockInsightStore.clearSelectedStockAnalysis();
+  }
 };
 
 const handleNavClick = (event) => {
-  // StockSentimentView로 이동하는 경우가 아니면, 선택된 종목 정보 초기화
-  const toName = event.currentTarget.getAttribute('href'); // 실제 라우트 이름을 가져오는 더 좋은 방법이 필요할 수 있음
-  if (router.resolve(toName).name !== 'StockSentimentView') {
-    stockInsightStore.clearSelectedStockAnalysis();
+  // event.currentTarget.getAttribute('href') 대신, 라우터의 목적지 이름을 직접 사용하는 것이 더 안전합니다.
+  // 이 부분은 현재 로직상 큰 문제가 없을 수 있으나, 더 견고하게 만들 여지가 있습니다.
+  // 예를 들어, 라우터 링크에 data-route-name="routeName"과 같은 속성을 추가하고 읽어오거나,
+  // 각 링크에 대한 핸들러를 개별적으로 만들어 처리할 수 있습니다.
+  // 현재는 링크의 to prop에 name이 지정되어 있으므로, 실제 라우트 객체를 통해 비교하는 것이 좋습니다.
+  // 여기서는 일단 기존 로직을 유지하되, clearSelectedStockAnalysis 함수 존재 여부만 확인합니다.
+
+  // ★★★ stockInsightStore에 clearSelectedStockAnalysis 함수가 정의되어 있다고 가정 ★★★
+  if (typeof stockInsightStore.clearSelectedStockAnalysis === 'function') {
+    const toPath = event.currentTarget.pathname; // 실제 href 경로 (예: /strategies)
+    const resolvedRoute = router.resolve({ path: toPath }); // 경로를 통해 라우트 정보 해석
+    
+    // StockSentimentView (또는 실시간 종목 분석 페이지의 실제 라우트 이름)로 이동하는 경우가 아니면 초기화
+    if (resolvedRoute && resolvedRoute.name !== 'RealtimeStockAnalysis' && resolvedRoute.name !== 'StockSentimentView') { // 라우트 이름을 정확히 확인
+        stockInsightStore.clearSelectedStockAnalysis();
+    }
   }
 };
 
@@ -64,13 +85,16 @@ onMounted(async () => {
     try {
       await authStore.fetchUser();
     } catch (error) {
-      console.error('사용자 정보 로드 실패:', error);
+      console.error('App.vue onMounted: 사용자 정보 로드 실패:', error);
     }
   }
-  // 앱 마운트 시 이전 분석 결과가 남아있을 수 있으므로 초기화
-  stockInsightStore.clearSelectedStockAnalysis();
+  // ★★★ stockInsightStore에 clearSelectedStockAnalysis 함수가 정의되어 있다고 가정 ★★★
+  if (typeof stockInsightStore.clearSelectedStockAnalysis === 'function') {
+    stockInsightStore.clearSelectedStockAnalysis();
+  }
 });
 </script>
+
 
 <style scoped>
 header {

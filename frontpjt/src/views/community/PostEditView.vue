@@ -1,3 +1,4 @@
+<!-- frontpjt/src/views/community/PostEditView.vue -->
 <template>
   <div class="post-edit-view">
     <h2>게시글 수정</h2>

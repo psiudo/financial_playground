@@ -1,3 +1,4 @@
+<!-- frontpjt/src/views/StrategyListView.vue -->
 <template>
   <div class="strategy-list-view">
     <h1>나의 투자 전략 목록</h1>
@@ -43,37 +44,26 @@ const fetchStrategies = async () => {
   loading.value = true;
   error.value = null;
   try {
-    const response = await api.get('/strategies/strategies/'); 
+    // ★★★ API 경로 수정: 'v1/' 및 백엔드 urls.py에 정의된 'strategies/' 추가 ★★★
+    const response = await api.get('v1/strategies/strategies/'); // 수정된 경로
+    
     let strategiesData = [];
-
-    if (response.data && Array.isArray(response.data)) {
-        strategiesData = response.data;
-    } else if (response.data && response.data.results && Array.isArray(response.data.results)) {
+    if (response.data && Array.isArray(response.data.results)) { // 페이지네이션 응답 가정
         strategiesData = response.data.results;
+    } else if (response.data && Array.isArray(response.data)) { // 직접 배열 응답 가정
+        strategiesData = response.data;
     } else {
         console.warn('Unexpected strategies API response structure:', response.data);
     }
     strategies.value = strategiesData;
 
-    // ----- 스크립트 단에서 데이터 로깅 -----
-    if (strategiesData.length > 0) {
-      console.log(`[Debug] 첫 번째 전략 (ID: ${strategiesData[0].id})의 전체 rule_json:`, JSON.stringify(strategiesData[0].rule_json, null, 2));
-      if (strategiesData[0].rule_json && strategiesData[0].rule_json.conditions && Array.isArray(strategiesData[0].rule_json.conditions) && strategiesData[0].rule_json.conditions.length > 0) {
-        console.log(`[Debug] 첫 번째 전략 (ID: ${strategiesData[0].id})의 첫 번째 condition 객체:`, JSON.stringify(strategiesData[0].rule_json.conditions[0], null, 2));
-      } else if (strategiesData[0].rule_json) {
-        console.log(`[Debug] 첫 번째 전략 (ID: ${strategiesData[0].id})의 rule_json에는 'conditions' 배열이 없거나 비어있습니다. Rule_json 내용:`, JSON.stringify(strategiesData[0].rule_json, null, 2));
-      }
-    } else {
-      console.log('[Debug] 수신된 전략 데이터가 없습니다.');
-    }
-    // ----- 여기까지 데이터 로깅 부분 -----
-
+    // ... (데이터 로깅 부분은 필요시 유지) ...
   } catch (err) {
     console.error('나의 전략 목록 조회 실패:', err.response?.data || err.message);
     if (err.response && err.response.status === 401) {
         error.value = '전략 목록을 보려면 로그인이 필요합니다.';
     } else {
-        error.value = `전략 목록을 불러오는 데 실패했습니다: ${err.message}`;
+        error.value = `전략 목록을 불러오는 데 실패했습니다: ${err.response?.data?.detail || err.message}`;
     }
   } finally {
     loading.value = false;
@@ -87,15 +77,22 @@ const formatDate = (dateString) => {
 };
 
 onMounted(() => {
-  const token = localStorage.getItem('token');
+  // authStore 등을 통해 로그인 여부 확인 후 호출하는 것이 더 좋습니다.
+  // 여기서는 로컬 스토리지 토큰 유무로 간략히 확인합니다.
+  const token = localStorage.getItem('token'); 
   if (token) {
     fetchStrategies();
   } else {
-    error.value = '전략 목록을 보려면 로그인이 필요합니다.';
+    error.value = '전략 목록을 보려면 로그인이 필요합니다. 먼저 로그인해주세요.';
     loading.value = false;
+    // Optional: Redirect to login
+    // import { useRouter } from 'vue-router';
+    // const router = useRouter();
+    // router.push({ name: 'LoginView' });
   }
 });
 </script>
+
 
 <style scoped>
 .strategy-list-view {

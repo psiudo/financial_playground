@@ -1,3 +1,4 @@
+<!-- frontpjt/src/views/SentimentAnalysisView.vue -->
 <template>
   <div class="sentiment-analysis-container view-container">
     <h2 class="view-title">텍스트 감정 분석</h2>

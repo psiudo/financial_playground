@@ -1,3 +1,4 @@
+<!-- frontpjt/src/views/community/PostCreateView.vue -->
 <template>
   <div class="post-create-view">
     <h2>새 게시글 작성</h2>

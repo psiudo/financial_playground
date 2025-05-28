@@ -1,3 +1,4 @@
+<!-- frontpjt/src/views/community/CommunityHomeView.vue -->
 <template>
   <div class="community-home">
     <h1>커뮤니티</h1>

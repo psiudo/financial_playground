@@ -22,18 +22,20 @@
         </p>
       </div>
       <div class="card-body">
-        <p><strong>판매자:</strong> {{ listing.seller_username || '정보 없음' }}</p> <p><strong>설명:</strong> {{ listing.strategy.description || '설명이 없습니다.' }}</p>
-        <p><strong>판매 수:</strong> {{ listing.sales_count !== undefined ? listing.sales_count : '정보 없음' }}</p> <p><strong>등록일:</strong> {{ formatDate(listing.created_at) }}</p>
+        <p><strong>판매자:</strong> {{ listing.seller_username || '정보 없음' }}</p>
+        <p><strong>설명:</strong> {{ listing.strategy.description || '설명이 없습니다.' }}</p>
+        <p><strong>판매 수:</strong> {{ listing.sales_count !== undefined ? listing.sales_count : '정보 없음' }}</p>
+        <p><strong>등록일:</strong> {{ formatDate(listing.created_at) }}</p>
         
         <hr/>
         <h4>전략 규칙</h4>
-        <div v-if="listing.strategy.rule_json" class="mt-3 rule-display-container">
-          <RuleDisplay :rules="listing.strategy.rule_json" />
+        <div v-if="listing.strategy.rule_json && (isOwner || listing.strategy.is_purchased || (listing.strategy.is_public && listing.price_point === 0))" class="mt-3 rule-display-container">
+            <RuleDisplay :rules="listing.strategy.rule_json" />
         </div>
         <div v-else class="alert alert-info mt-3">
-          <p v-if="isOwner">이 전략은 귀하의 소유이므로 규칙을 볼 수 있습니다. (백엔드에서 규칙이 제공되지 않았을 수 있습니다.)</p>
-          <p v-else-if="listing.strategy.is_purchased">이미 구매한 전략입니다. 규칙을 확인할 수 있습니다. (백엔드에서 규칙이 제공되지 않았을 수 있습니다.)</p>
-          <p v-else-if="listing.strategy.is_public && listing.price_point === 0">무료 공개 전략입니다. (규칙이 공개되지 않았거나 판매자가 비공개했을 수 있습니다.)</p>
+          <p v-if="isOwner">이 전략은 귀하의 소유이므로 규칙을 볼 수 있습니다. (백엔드에서 규칙이 제공되지 않았거나, rule_json 필드가 없을 수 있습니다.)</p>
+          <p v-else-if="listing.strategy.is_purchased">이미 구매한 전략입니다. 규칙을 확인할 수 있습니다. (백엔드에서 규칙이 제공되지 않았거나, rule_json 필드가 없을 수 있습니다.)</p>
+          <p v-else-if="listing.strategy.is_public && listing.price_point === 0">무료 공개 전략입니다. (규칙이 공개되지 않았거나 판매자가 비공개했을 수 있습니다. 또는 rule_json 필드가 없을 수 있습니다.)</p>
           <p v-else>유료 전략입니다. 규칙의 상세 내용은 구매 후 확인할 수 있습니다.</p>
         </div>
       </div>
@@ -76,8 +78,8 @@
 import { ref, onMounted, computed, watch } from 'vue';
 import { useRoute, useRouter, RouterLink } from 'vue-router';
 import api from '@/utils/api';
-import RuleDisplay from '@/components/RuleDisplay.vue'; // RuleDisplay 컴포넌트 임포트
-import { useAuthStore } from '@/stores/authStore'; // authStore 사용
+import RuleDisplay from '@/components/RuleDisplay.vue';
+import { useAuthStore } from '@/stores/authStore';
 
 const route = useRoute();
 const router = useRouter();
@@ -88,7 +90,6 @@ const loading = ref(true);
 const error = ref(''); 
 const purchaseLoading = ref(false);
 
-// currentUsername은 authStore에서 가져오는 것이 더 좋습니다.
 const currentUsername = computed(() => authStore.user?.username); 
 
 const getValidListingId = (param) => {
@@ -104,7 +105,7 @@ const getValidListingId = (param) => {
 const listingId = computed(() => getValidListingId(route.params.listingId));
 
 const isOwner = computed(() => {
-  if (!listing.value || !listing.value.seller_username || !currentUsername.value) { // seller -> seller_username
+  if (!listing.value || !listing.value.seller_username || !currentUsername.value) {
     return false;
   }
   return listing.value.seller_username === currentUsername.value;
@@ -129,9 +130,9 @@ const fetchListingDetails = async () => {
   }
 
   try {
-    // API 호출 시 컨텍스트(listing_id)를 포함하여 is_purchased를 계산할 수 있도록 함
-    const response = await api.get(`/marketplace/${idForApi}/`, {
-      params: { for_listing_detail: true } // 백엔드에서 이 파라미터를 보고 context에 listing_id 추가
+    // ★★★ API 경로 수정: 'v1' 추가 ★★★
+    const response = await api.get(`v1/marketplace/${idForApi}/`, { // 수정된 경로
+      params: { for_listing_detail: true } 
     });
     listing.value = response.data;
     
@@ -171,14 +172,13 @@ const purchaseStrategy = async () => {
 
   purchaseLoading.value = true;
   try {
-    const response = await api.post(`/marketplace/${idForApi}/purchase/`);
+    // ★★★ API 경로 수정: 'v1' 추가 ★★★
+    const response = await api.post(`v1/marketplace/${idForApi}/purchase/`); // 수정된 경로
     alert('전략을 성공적으로 구매했습니다! 나의 전략 목록에 추가되었습니다.');
     
     const clonedStrategyId = response.data.cloned_strategy_id;
 
-    // 구매 성공 후, 프론트엔드 상태 업데이트
-    // 백엔드에서 업데이트된 listing 정보 (is_purchased 포함)를 응답으로 주거나, 다시 fetch
-    await fetchListingDetails(); // 가장 확실한 방법은 다시 fetch
+    await fetchListingDetails(); 
 
     if (clonedStrategyId) {
       if (confirm("구매한 전략이 나의 전략 목록에 추가되었습니다. 해당 전략 상세 페이지로 이동하시겠습니까?")) {
@@ -190,7 +190,7 @@ const purchaseStrategy = async () => {
         }
     }
   } catch (err) {
-    console.error('전략 구매에 실패했습니다:', err);
+    console.error('전략 구매에 실패했습니다:', err.response || err);
     alert(`전략 구매에 실패했습니다: ${err.response?.data?.detail || '서버 오류가 발생했습니다.'}`);
   } finally {
     purchaseLoading.value = false;
@@ -206,14 +206,12 @@ const forkFreeStrategy = async () => {
       alert('이 전략은 유료입니다. 구매 버튼을 이용해주세요.');
       return;
   }
-  // 무료 전략도 백엔드의 purchase API를 사용하여 복제 (백엔드에서 price_point가 0이면 포인트 차감 없이 처리)
   await purchaseStrategy(); 
 };
 
 onMounted(async () => {
-  // App.vue 등에서 사용자 정보를 먼저 로드하도록 보장하는 것이 좋음
   if (authStore.token && !authStore.user) {
-    await authStore.fetchUser(); // 사용자 정보가 스토어에 없으면 가져오기
+    await authStore.fetchUser();
   }
 
   const idFromRoute = getValidListingId(route.params.listingId);
@@ -233,8 +231,9 @@ watch(listingId, (newId, oldId) => {
 </script>
 
 <style scoped>
+/* ... 기존 스타일 코드 ... */
 .marketplace-detail-page {
-  padding-bottom: 3rem; /* 푸터 공간 확보 */
+  padding-bottom: 3rem; 
 }
 .loading-section, .error-section {
   padding: 2rem;
@@ -278,7 +277,4 @@ watch(listingId, (newId, oldId) => {
     font-size: 0.85em;
     padding: 0.4em 0.6em;
 }
-/* Joomak 테마 색상으로 버튼 오버라이드 (필요시) */
-/* .btn-success { background-color: var(--joomak-accent); border-color: var(--joomak-accent); } */
-/* .btn-primary { background-color: var(--joomak-primary); border-color: var(--joomak-primary); } */
 </style>

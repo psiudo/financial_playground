@@ -1,3 +1,4 @@
+// frontpjt/src/stores/commodityStore.js
 import { ref } from 'vue'
 import { defineStore } from 'pinia'
 import api from '@/utils/api'

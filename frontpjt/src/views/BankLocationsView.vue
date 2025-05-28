@@ -1,3 +1,4 @@
+<!-- frontpjt/src/views/BankLocationsView.vue -->
 <template>
   <div class="bank-locations-view">
     <h1>내 주변 은행 찾기</h1>

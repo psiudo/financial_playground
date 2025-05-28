@@ -1,3 +1,4 @@
+<!-- frontpjt/src/components/RuleDisplay.vue -->
 <template>
   <div class="rule-display" v-if="formattedRuleBlocks.length > 0">
     <div v-for="(block, blockIndex) in formattedRuleBlocks" :key="blockIndex" class="rule-block">

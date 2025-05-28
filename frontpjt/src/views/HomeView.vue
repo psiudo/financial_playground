@@ -1,3 +1,4 @@
+<!-- frontpjt/src/views/HomeView.vue -->
 <template>
   <main class="home-view container py-4">
     <h1>주막에 오신 것을 환영합니다!</h1>

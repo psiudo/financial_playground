@@ -1,3 +1,4 @@
+<!-- frontpjt/src/views/StrategyDetailView.vue -->
 <template>
   <div class="strategy-detail-view">
     <div v-if="loading" class="loading-spinner">로딩 중...</div>
@@ -54,26 +55,24 @@
 </template>
 
 <script setup>
-import { ref, onMounted, watch, reactive } from 'vue'; // reactive 추가
+import { ref, onMounted, watch, reactive } from 'vue';
 import { useRoute, useRouter, RouterLink } from 'vue-router';
 import api from '@/utils/api';
-// RuleDisplay는 이 뷰에서 직접 사용하지 않음 (수정 폼이므로)
 
 const route = useRoute();
 const router = useRouter();
 const strategyId = ref(route.params.strategyId);
 
-// editableStrategy를 reactive 객체로 변경
 const editableStrategy = reactive({ 
-    name: '',
-    description: '',
-    rule_json_text: '', // 사용자가 편집하는 JSON 문자열
-    rule_json: {},      // API로 보낼 파싱된 JSON 객체
-    is_public: false,
-    is_paid: false,
-    price_point: 0,
+  name: '',
+  description: '',
+  rule_json_text: '',
+  rule_json: {},      
+  is_public: false,
+  is_paid: false,
+  price_point: 0,
 }); 
-const originalStrategy = ref(null); // API로부터 받은 원본 데이터 저장용
+const originalStrategy = ref(null);
 
 const loading = ref(true);
 const fetchError = ref(null);
@@ -86,7 +85,6 @@ const populateEditableStrategy = (sourceStrategy) => {
     if (!sourceStrategy) return;
     editableStrategy.name = sourceStrategy.name || '';
     editableStrategy.description = sourceStrategy.description || '';
-    // rule_json을 문자열로 변환하여 textarea에 표시하고, 객체도 내부적으로 유지
     editableStrategy.rule_json = sourceStrategy.rule_json || {};
     editableStrategy.rule_json_text = JSON.stringify(sourceStrategy.rule_json || {}, null, 2);
     editableStrategy.is_public = sourceStrategy.is_public || false;
@@ -98,18 +96,19 @@ const fetchStrategyDetail = async () => {
   loading.value = true;
   fetchError.value = null;
   try {
-    const response = await api.get(`/strategies/strategies/${strategyId.value}/`);
-    originalStrategy.value = response.data; // 원본 저장
-    populateEditableStrategy(response.data); // 수정용 데이터에 복사
+    // ★★★ API 경로 수정: 'v1/' 및 백엔드 urls.py에 정의된 'strategies/' 추가 ★★★
+    const response = await api.get(`v1/strategies/strategies/${strategyId.value}/`); // 수정된 경로
+    originalStrategy.value = response.data; 
+    populateEditableStrategy(response.data);
   } catch (err) {
-    console.error('전략 상세 정보 조회 실패:', err);
+    console.error('전략 상세 정보 조회 실패:', err.response?.data || err.message);
     if (err.response) {
         if (err.response.status === 404) {
             fetchError.value = '해당 전략을 찾을 수 없습니다.';
         } else if (err.response.status === 401 || err.response.status === 403) {
             fetchError.value = '이 전략을 보거나 수정할 권한이 없습니다.';
         } else {
-            fetchError.value = `전략 상세 정보를 불러오는 데 실패했습니다. (상태: ${err.response.status})`;
+            fetchError.value = `전략 상세 정보를 불러오는 데 실패했습니다. (상태: ${err.response.status}, 메시지: ${err.response.data?.detail || err.message})`;
         }
     } else {
         fetchError.value = '전략 상세 정보를 불러오는 중 네트워크 오류가 발생했습니다.';
@@ -125,7 +124,6 @@ const handleUpdateStrategy = async () => {
   jsonError.value = null;
 
   try {
-    // textarea의 문자열을 JSON 객체로 파싱하여 rule_json에 저장
     editableStrategy.rule_json = JSON.parse(editableStrategy.rule_json_text);
   } catch (e) {
     jsonError.value = '규칙(JSON) 형식이 올바르지 않습니다. JSON 문법을 확인해주세요.';
@@ -139,40 +137,46 @@ const handleUpdateStrategy = async () => {
       return;
   }
   if (!editableStrategy.is_paid) {
-      editableStrategy.price_point = 0; // 유료가 아니면 가격 0으로 설정
+      editableStrategy.price_point = 0; 
   }
 
-  // API로 전송할 payload (reactive 객체의 현재 값을 사용)
   const payload = {
       name: editableStrategy.name,
       description: editableStrategy.description,
-      rule_json: editableStrategy.rule_json, // 파싱된 JSON 객체
+      rule_json: editableStrategy.rule_json,
       is_public: editableStrategy.is_public,
       is_paid: editableStrategy.is_paid,
       price_point: editableStrategy.price_point,
   };
 
   try {
-    await api.put(`/strategies/strategies/${strategyId.value}/`, payload);
+    // ★★★ API 경로 수정: 'v1/' 및 백엔드 urls.py에 정의된 'strategies/' 추가 ★★★
+    await api.put(`v1/strategies/strategies/${strategyId.value}/`, payload); // 수정된 경로
     alert('전략이 성공적으로 수정되었습니다!');
-    // 수정 후, 다시 상세 정보를 불러오거나 목록으로 이동할 수 있음
-    fetchStrategyDetail(); // 최신 정보로 폼 다시 채우기
-    // router.push({ name: 'StrategyListView' }); 
+    fetchStrategyDetail(); 
   } catch (err) {
     console.error('전략 수정 실패:', err.response?.data || err.message);
     if (err.response && err.response.data) {
-        let errorMessage = '전략 수정에 실패했습니다. 입력 내용을 확인해주세요.';
+        let errorMessage = '전략 수정에 실패했습니다. ';
         const errors = err.response.data;
         const errorMessages = [];
-        for (const key in errors) {
-            if (Array.isArray(errors[key])) {
-                errorMessages.push(`${key}: ${errors[key].join(', ')}`);
-            } else {
-                errorMessages.push(`${key}: ${errors[key]}`);
+         if (typeof errors === 'string') {
+            errorMessage = errors;
+        } else if (errors.detail) {
+            errorMessage = errors.detail;
+        } else {
+            for (const key in errors) {
+                if (Array.isArray(errors[key])) {
+                    errorMessages.push(`${key}: ${errors[key].join(', ')}`);
+                } else {
+                    errorMessages.push(`${key}: ${errors[key]}`);
+                }
             }
-        }
-        if (errorMessages.length > 0) {
-            errorMessage = errorMessages.join(' | ');
+            if (errorMessages.length > 0) {
+                errorMessage = errorMessages.join(' | ');
+            } else {
+                errorMessage += '입력 내용을 확인해주세요.';
+            }
         }
         updateError.value = errorMessage;
     } else {
@@ -188,7 +192,8 @@ const handleDeleteStrategy = async () => {
     deleting.value = true;
     updateError.value = null; 
     try {
-      await api.delete(`/strategies/strategies/${strategyId.value}/`);
+      // ★★★ API 경로 수정: 'v1/' 및 백엔드 urls.py에 정의된 'strategies/' 추가 ★★★
+      await api.delete(`v1/strategies/strategies/${strategyId.value}/`); // 수정된 경로
       alert('전략이 성공적으로 삭제되었습니다.');
       router.push({ name: 'StrategyListView' });
     } catch (err) {
@@ -196,7 +201,7 @@ const handleDeleteStrategy = async () => {
       if (err.response && (err.response.status === 401 || err.response.status === 403)) {
         updateError.value = '이 전략을 삭제할 권한이 없습니다.';
       } else {
-        updateError.value = '전략 삭제 중 오류가 발생했습니다.';
+        updateError.value = `전략 삭제 중 오류가 발생했습니다: ${err.response?.data?.detail || err.message}`;
       }
     } finally {
       deleting.value = false;

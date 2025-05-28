@@ -1,3 +1,4 @@
+<!-- frontpjt/src/views/CommoditiesView.vue -->
 <template>
   <div class="container py-4 commodities-view">
     <h1 class="mb-4 text-center">현물 자산 시세</h1>

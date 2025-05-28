@@ -1,3 +1,4 @@
+<!-- frontpjt/src/views/community/PostListView.vue -->
 <template>
   <div class="post-list-view"> <h2>{{ boardTitle }} 게시판</h2>
     <RouterLink :to="{ name: 'postCreate' }">글쓰기</RouterLink>
