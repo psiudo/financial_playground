@@ -35,7 +35,8 @@ urlpatterns = [
     path('api/v1/notifications/', include('notifications.api.urls')),
     path('api/v1/dashboard/', include('dashboard.api.urls')),
     path('api/v1/commodities/', include('commodities.api.urls')),
-    path('api/v1/', include('bank_locations.api.urls')), # bank_locations.api.urls 내부에 'bank-locations/' 패턴이 있어야 함
+    path('api/v1/', include('bank_locations.api.urls')),
+    path('api/v1/bank-locations/', include('bank_locations.api.urls')), # 은행 지점 관련 API
 
     # 아래 JWT Auth 경로는 accounts.api.urls 내부로 이전되어 /api/v1/accounts/login/ 등으로 접근하게 됩니다.
     # path('api/token/', TokenObtainPairView.as_view(), name='token_obtain_pair'), # 중복 제거
