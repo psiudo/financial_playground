@@ -1,7 +1,7 @@
 // frontpjt/src/stores/commodityStore.js
 import { ref } from 'vue'
 import { defineStore } from 'pinia'
-import api from '@/utils/api'
+import api from '@/utils/api' // baseURL: 'http://127.0.0.1:8000/api'
 
 export const useCommodityStore = defineStore('commodity', () => {
   // --- 상태 (State) ---
@@ -9,7 +9,9 @@ export const useCommodityStore = defineStore('commodity', () => {
   
   const priceHistoryGold = ref([])
   const priceHistorySilver = ref([])
-  
+  // 다른 상품이 추가될 경우를 대비하여 좀 더 일반적인 구조를 고려할 수 있습니다.
+  // 예: const priceHistories = ref({}); // { GOLD: [], SILVER: [] }
+
   const isLoadingList = ref(false)
   const isLoadingHistoryGold = ref(false)
   const isLoadingHistorySilver = ref(false)
@@ -23,19 +25,19 @@ export const useCommodityStore = defineStore('commodity', () => {
     isLoadingList.value = true
     errorList.value = null
     try {
-      const response = await api.get('commodities/list/') // 백엔드 API 경로 확인!
-      commodityList.value = response.data
+      // ★★★ API 경로 수정: 'v1/' 추가 ★★★
+      const response = await api.get('v1/commodities/list/') // 수정된 경로
+      commodityList.value = response.data.results ? response.data.results : response.data; // 페이지네이션 고려
       console.log('Commodity list fetched:', commodityList.value)
     } catch (err) {
-      console.error('Error fetching commodity list:', err)
-      errorList.value = '현물 상품 목록을 불러오는 중 오류가 발생했습니다.'
+      console.error('Error fetching commodity list:', err.response?.data || err.message, err)
+      errorList.value = `현물 상품 목록을 불러오는 중 오류가 발생했습니다: ${err.response?.data?.detail || err.message}`
       commodityList.value = []
     } finally {
       isLoadingList.value = false
     }
   }
 
-  // symbol별로 가격 이력을 가져오고 상태를 업데이트하는 함수
   async function fetchPriceHistoryForSymbol(symbol, startDate = null, endDate = null) {
     if (!symbol) return;
 
@@ -51,32 +53,34 @@ export const useCommodityStore = defineStore('commodity', () => {
       priceHistoryRef = priceHistorySilver;
       errorRef = errorHistorySilver;
     } else {
-      console.error(`Unsupported commodity symbol: ${symbol}`);
+      console.error(`Unsupported commodity symbol for dedicated state: ${symbol}`);
+      // 필요하다면 일반적인 priceHistories[symbol] 같은 곳에 저장할 수 있습니다.
       return;
     }
 
     isLoadingRef.value = true;
     errorRef.value = null;
     
-    let url = `commodities/${upperSymbol}/history/`;
+    // ★★★ API 경로 수정: 'v1/' 추가 ★★★
+    let url = `v1/commodities/${upperSymbol}/history/`; // 수정된 경로
     const params = {};
     if (startDate) params.from = startDate;
     if (endDate) params.to = endDate;
 
     try {
       const response = await api.get(url, { params });
-      priceHistoryRef.value = response.data;
+      // 페이지네이션 응답을 사용하는 경우 response.data.results를 사용해야 할 수 있습니다.
+      priceHistoryRef.value = response.data.results ? response.data.results : response.data;
       console.log(`Price history for ${upperSymbol} fetched:`, priceHistoryRef.value);
     } catch (err) {
-      console.error(`Error fetching price history for ${upperSymbol}:`, err);
-      errorRef.value = `${upperSymbol} 가격 정보를 불러오는 중 오류가 발생했습니다.`;
+      console.error(`Error fetching price history for ${upperSymbol}:`, err.response?.data || err.message, err);
+      errorRef.value = `${upperSymbol} 가격 정보를 불러오는 중 오류가 발생했습니다: ${err.response?.data?.detail || err.message}`;
       priceHistoryRef.value = [];
     } finally {
       isLoadingRef.value = false;
     }
   }
   
-  // 선택적으로, 모든 상품의 가격 이력을 한 번에 초기화하는 함수
   function clearAllPriceHistories() {
     priceHistoryGold.value = []
     priceHistorySilver.value = []
@@ -95,7 +99,7 @@ export const useCommodityStore = defineStore('commodity', () => {
     errorHistoryGold,
     errorHistorySilver,
     fetchCommodityList,
-    fetchPriceHistoryForSymbol, // 이름 변경 및 로직 수정
+    fetchPriceHistoryForSymbol,
     clearAllPriceHistories,
   }
 })
