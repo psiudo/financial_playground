@@ -1,314 +1,404 @@
-# Back/crawlers/services/toss.py
-import os, re, time, logging, functools, datetime
+import os
+import re
+import time
+import logging
+import functools
+import datetime # 표준 datetime 임포트
+from typing import List, Dict, Tuple, Optional, Union # Optional 또는 Union 추가
+
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
-from selenium.common.exceptions import StaleElementReferenceException
-from django.utils import timezone # Django의 timezone 사용
-# from utils.driver_pool import get_driver # 이 부분은 실제 driver_pool.py 내용에 따라 주석 해제 또는 수정 필요
+from selenium.common.exceptions import (
+    StaleElementReferenceException,
+    TimeoutException,
+    NoSuchElementException,
+    WebDriverException
+)
+from django.utils import timezone
 
-# get_driver() 함수 임시 정의 (실제 utils.driver_pool.py 내용으로 대체 필요)
-# 이 함수가 WebDriver 인스턴스를 반환해야 합니다.
-# 예시: from selenium import webdriver
-def get_driver():
-    # 실제 WebDriver 설정 및 반환 로직 필요
-    # logger.debug("임시 get_driver 호출됨")
-    # options = webdriver.ChromeOptions()
-    # options.add_argument('--headless') # 예시: 헤드리스 모드
-    # options.add_argument('--no-sandbox')
-    # options.add_argument('--disable-dev-shm-usage')
-    # driver = webdriver.Chrome(options=options)
-    # return driver
-    raise NotImplementedError("utils.driver_pool.get_driver() 함수를 실제 WebDriver 로직으로 구현해야 합니다.")
-
+# 프로젝트의 utils.driver_pool에서 get_driver를 가져옵니다.
+# utils 디렉토리가 PYTHONPATH에 있거나, Back 디렉토리에서 실행되는 경우를 가정합니다.
+from utils.driver_pool import get_driver
 
 LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO").upper()
-logging.basicConfig(level=LOG_LEVEL,
-                    format='%(asctime)s [%(levelname)s] %(message)s')
+# logging.basicConfig(level=LOG_LEVEL,
+#                     format='%(asctime)s [%(levelname)s] %(name)s: %(message)s') # Django 프로젝트에서는 settings.py에서 로깅을 설정합니다.
 logger = logging.getLogger(__name__)
 
-# time_logger 함수 정의를 fetch_toss_comments 함수 정의 앞으로 이동
 def time_logger(fn):
     @functools.wraps(fn)
-    def wrap(*a, **kw):
-        s = time.perf_counter()
-        r = fn(*a, **kw)
-        e = time.perf_counter()
-        logger.info("%s 전체 실행 시간: %.4f초", fn.__name__, e - s)
+    def wrap(*args, **kwargs):
+        s_time = time.perf_counter()
+        func_args_str = f"args={args}, kwargs={kwargs}" if args or kwargs else ""
+        logger.debug(f"Function '{fn.__name__}' called. {func_args_str}")
+        
+        r = fn(*args, **kwargs)
+        
+        e_time = time.perf_counter()
+        logger.info(f"Function '{fn.__name__}' execution time: {e_time - s_time:.4f} seconds.")
         return r
     return wrap
 
-def extract_stock_code(url: str):
-    m = re.search(r'/stocks/[A-Z]?([0-9]{6})/order', url)
-    if not m: # /order가 없는 community URL도 고려
-        m = re.search(r'/stocks/[A-Z]?([0-9]{6})/community', url)
-    return m.group(1) if m else None
+def extract_stock_code_from_url(url: str) -> Optional[str]: # Python 3.9 호환을 위해 Union 또는 Optional 사용
+    """
+    주어진 URL에서 6자리 숫자 또는 알파벳+5자리 숫자로 된 종목 코드를 추출합니다.
+    예: /stocks/005930/community, /stocks/A005930/order 등
+    """
+    if not url:
+        return None
+    match = re.search(r'/stock(?:s)?/([A-Z]?[0-9]{5,6})(?:/|$|\?)', url)
+    if match:
+        return match.group(1)
+    logger.warning(f"URL에서 종목 코드를 추출하지 못했습니다: {url}")
+    return None
 
-def click_element(driver, locator, timeout=10, retries=3, delay=0.5):
+def robust_click_element(driver, locator: Tuple[str, str], timeout: int = 15, retries: int = 3, delay_seconds: int = 1) -> bool:
+    """
+    더 안정적인 요소 클릭 함수 (JavaScript 클릭 포함)
+    locator: (By.XPATH, "xpath_string") 형태의 튜플
+    """
     for attempt in range(retries):
         try:
             element = WebDriverWait(driver, timeout).until(
                 EC.element_to_be_clickable(locator)
             )
-            element.click()
+            driver.execute_script("arguments[0].scrollIntoView(true); arguments[0].click();", element)
+            logger.debug(f"Element clicked via JavaScript: {locator}")
             return True
         except StaleElementReferenceException:
-            logger.warning(f"StaleElementReferenceException, 재시도 ({attempt + 1}/{retries})")
-            time.sleep(delay)
+            logger.warning(f"StaleElementReferenceException on attempt {attempt + 1}/{retries} for {locator}")
+        except TimeoutException:
+            logger.warning(f"TimeoutException (not clickable) on attempt {attempt + 1}/{retries} for {locator}")
         except Exception as e:
-            logger.warning(f"Click_element 예외 발생 ({locator}): {e}, 재시도 ({attempt + 1}/{retries})")
-            time.sleep(delay)
-    logger.error(f"Click_element 최종 실패: {locator}")
+            logger.warning(f"Exception clicking element {locator} on attempt {attempt + 1}/{retries}: {e}")
+        
+        if attempt < retries - 1:
+            time.sleep(delay_seconds)
+        else: 
+            try:
+                element = WebDriverWait(driver, timeout).until(EC.presence_of_element_located(locator))
+                element.click() # 마지막 시도는 표준 클릭
+                logger.debug(f"Element clicked via standard method: {locator}")
+                return True
+            except Exception as e_final:
+                logger.error(f"Final attempt to click element {locator} failed: {e_final}")
+    
+    logger.error(f"Robust_click_element 최종 실패: {locator}")
     return False
 
-# 헬퍼 함수: 상대 시간을 datetime 객체로 변환
-def parse_relative_time(relative_time_str):
+
+def parse_toss_relative_time(relative_time_str: str) -> datetime.datetime:
     now = timezone.now()
-    if not relative_time_str: # 빈 문자열이나 None이면 현재 시간 반환
+    if not relative_time_str:
         return now
-        
-    if "방금" in relative_time_str or "Just now" in relative_time_str.lower():
+
+    cleaned_str = relative_time_str.strip().lower()
+
+    if "방금" in cleaned_str or "just now" in cleaned_str:
         return now
-    
-    minutes_match = re.search(r'(\d+)\s*(분|minute|min) 전', relative_time_str)
+
+    minutes_match = re.search(r'(\d+)\s*(분|분전|minute|min|m)', cleaned_str)
     if minutes_match:
-        minutes_ago = int(minutes_match.group(1))
-        return now - datetime.timedelta(minutes=minutes_ago)
-    
-    hours_match = re.search(r'(\d+)\s*(시간|hour|hr) 전', relative_time_str)
+        return now - datetime.timedelta(minutes=int(minutes_match.group(1)))
+
+    hours_match = re.search(r'(\d+)\s*(시간|시간전|hour|hr|h)', cleaned_str)
     if hours_match:
-        hours_ago = int(hours_match.group(1))
-        return now - datetime.timedelta(hours=hours_ago)
-    
-    if "어제" in relative_time_str or "Yesterday" in relative_time_str.lower():
+        return now - datetime.timedelta(hours=int(hours_match.group(1)))
+
+    if "어제" in cleaned_str or "yesterday" in cleaned_str:
         yesterday = now - datetime.timedelta(days=1)
-        time_match = re.search(r'(\d{1,2}):(\d{2})', relative_time_str)
+        time_match = re.search(r'(\d{1,2}):(\d{2})', cleaned_str)
         if time_match:
             hour, minute = map(int, time_match.groups())
             return yesterday.replace(hour=hour, minute=minute, second=0, microsecond=0)
         return yesterday.replace(hour=0, minute=0, second=0, microsecond=0)
 
-    date_match_md = re.match(r'(\d{1,2})\.(\d{1,2})\.', relative_time_str) # MM.DD. 형식
-    if date_match_md:
-        try:
-            month, day = map(int, date_match_md.groups())
-            # 올해의 해당 날짜로 설정
-            parsed_date = datetime.datetime(now.year, month, day, tzinfo=now.tzinfo)
-            if parsed_date > now and (now.month < month or (now.month == month and now.day < day)): # 미래 날짜로 보이면 작년으로
-                 parsed_date = datetime.datetime(now.year -1, month, day, tzinfo=now.tzinfo)
-            return parsed_date
-        except ValueError:
-            logger.warning(f"날짜 형식 파싱 실패 (MM.DD.): {relative_time_str}")
-            return now 
-            
-    date_match_ymd = re.match(r'(\d{4})\.(\d{1,2})\.(\d{1,2})', relative_time_str) # YYYY.MM.DD 형식
+    date_match_ymd = re.match(r'(\d{4})\s*\.\s*(\d{1,2})\s*\.\s*(\d{1,2})', cleaned_str)
     if date_match_ymd:
         try:
             year, month, day = map(int, date_match_ymd.groups())
-            return datetime.datetime(year, month, day, tzinfo=now.tzinfo)
+            dt_obj = datetime.datetime(year, month, day)
+            return timezone.make_aware(dt_obj, timezone.get_current_timezone()) if timezone.is_naive(dt_obj) else dt_obj
         except ValueError:
-            logger.warning(f"날짜 형식 파싱 실패 (YYYY.MM.DD): {relative_time_str}")
+            logger.warning(f"날짜 형식(YYYY.MM.DD) 파싱 실패: '{cleaned_str}'")
             return now
 
-    logger.warning(f"알 수 없는 시간 형식: '{relative_time_str}', 현재 시간으로 대체합니다.")
+    date_match_md = re.match(r'(\d{1,2})\s*\.\s*(\d{1,2})\.?', cleaned_str)
+    if date_match_md:
+        try:
+            month, day = map(int, date_match_md.groups())
+            dt_obj = datetime.datetime(now.year, month, day)
+            aware_dt_obj = timezone.make_aware(dt_obj, timezone.get_current_timezone()) if timezone.is_naive(dt_obj) else dt_obj
+            if aware_dt_obj > now :
+                 if now.month < month or (now.month == month and now.day < day):
+                    dt_obj = datetime.datetime(now.year - 1, month, day)
+                    aware_dt_obj = timezone.make_aware(dt_obj, timezone.get_current_timezone()) if timezone.is_naive(dt_obj) else dt_obj
+            return aware_dt_obj
+        except ValueError:
+            logger.warning(f"날짜 형식(MM.DD) 파싱 실패: '{cleaned_str}'")
+            return now
+
+    logger.warning(f"알 수 없는 시간 형식: '{cleaned_str}', 현재 시간으로 대체합니다.")
     return now
 
 
-# ──────────────────────────────
-# 댓글 1개 파싱
-# ──────────────────────────────
-def _parse_article(art): # driver 인스턴스를 인자로 받을 필요가 없음 (art에서 모두 해결)
-    author = "익명"
-    written_at_dt = timezone.now() # 기본값
-    content = ""
-    likes = 0
+def _parse_single_toss_comment(article_element, driver_for_js_click) -> Dict[str, Union[str, datetime.datetime, int]]:
+    author, written_at_dt, content_text, likes_count = "익명", timezone.now(), "", 0
 
-    try:
-        author_element = art.find_element(By.CSS_SELECTOR, 'span[style*="font-weight: bold"]')
-        author = author_element.text.strip() if author_element else "익명"
-    except Exception:
-        logger.debug("작성자 정보 파싱 중 오류 발생 (기본값 사용)")
+    author_selectors = [
+        'span[class^="tcss-e15d5a"]', 
+        'span[style*="font-weight: bold"]',
+        'div[data-testid="comment-author"]'
+    ]
+    for selector in author_selectors:
+        try:
+            author_el = article_element.find_element(By.CSS_SELECTOR, selector)
+            author = author_el.text.strip()
+            if author and author != "익명": break # 유효한 작성자명 찾으면 중단
+        except NoSuchElementException:
+            continue
+        except Exception as e_author:
+            logger.debug(f"Author parsing error with selector '{selector}': {e_author}")
+    if not author : author = "익명"
 
-    try:
-        written_at_element = art.find_element(By.CSS_SELECTOR, 'span[style*="font-weight: normal"]')
-        written_at_str = written_at_element.text.strip() if written_at_element else ""
-        written_at_dt = parse_relative_time(written_at_str)
-    except Exception:
-        logger.debug("작성 시간 정보 파싱 중 오류 발생 (기본값 사용)")
 
-    try:
-        more_buttons = art.find_elements(By.XPATH, './/button[contains(text(),"더 보기")]')
-        if more_buttons:
-            try:
-                # JavaScript 클릭이 더 안정적일 수 있습니다.
-                # art.parent는 WebElement이므로 execute_script를 직접 호출할 수 없습니다.
-                # driver 객체가 필요합니다. 이 함수 스코프에 없다면, click_element 사용하거나 driver 전달해야 합니다.
-                # 여기서는 단순 click() 시도. StaleElementReferenceException 대비 필요.
-                more_buttons[0].click() 
-                time.sleep(0.3) # DOM 변경 대기
-            except Exception as e_click:
-                logger.warning(f"더 보기 버튼 클릭 중 오류: {e_click}")
-    except Exception:
-        logger.debug("더 보기 버튼 처리 중 오류 발생")
-        
-    try:
-        content_element = art.find_element(By.CSS_SELECTOR, 'span[class*="_60z0ev1"]') 
-        content_html = content_element.get_attribute("innerHTML") if content_element else ""
-        content = content_html.replace("<br>", "\n").strip()
-    except Exception:
-        logger.debug("본문 내용 파싱 중 오류 발생 (기본값 사용)")
+    time_selectors = [
+        'span[class*="time"]',
+        'span[style*="color: var(--adaptive_palette-gray-500)"]',
+        'span[style*="color:rgb(128, 136, 144)"]', # rgb 값으로도 시도
+        'div[data-testid="comment-timestamp"]'
+    ]
+    written_at_str = ""
+    for selector in time_selectors:
+        try:
+            time_els = article_element.find_elements(By.CSS_SELECTOR, selector)
+            for el in time_els: # 여러 요소가 잡힐 수 있으므로 가장 적합한 텍스트 찾기
+                el_text = el.text.strip()
+                if el_text and (re.search(r'\d', el_text) or any(kw in el_text.lower() for kw in ["분", "시간", "어제", "방금", ".", ":", "just", "ago", "yesterday"])):
+                    written_at_str = el_text
+                    break
+            if written_at_str: break
+        except Exception as e_time:
+            logger.debug(f"Time parsing error with selector '{selector}': {e_time}")
+    
+    written_at_dt = parse_toss_relative_time(written_at_str)
 
-    try:
-        likes_element = art.find_element(By.XPATH, './/div[text()="좋아요 버튼"]/preceding-sibling::span[1]')
-        likes_txt = likes_element.text if likes_element else "0"
-        likes = int(re.sub(r'\D', '', likes_txt) or 0)
-    except Exception:
-        logger.debug("좋아요 수 파싱 중 오류 발생 (기본값 사용)")
-        
-    # comment_count는 현재 모델에 없으므로 제거
-    # try:
-    #     cmt_element = art.find_element(By.XPATH, './/div[text()="댓글 펼치기 버튼"]/preceding-sibling::span[1]')
-    #     cmt_txt = cmt_element.text if cmt_element else "0"
-    #     comment_cnt = int(re.sub(r'\D', '', cmt_txt) or 0)
-    # except Exception:
-    #     logger.debug("댓글 수 파싱 중 오류 발생 (기본값 사용)")
-    #     comment_cnt = 0
-        
-    return dict(author=author, # tasks.py에서 Comment 모델의 author 필드에 사용
-                written_at=written_at_dt,
-                content=content,
-                likes=likes, # tasks.py에서 Comment 모델의 likes 필드에 사용
-                # comment_count=comment_cnt # 필요시 모델에 추가하고 사용
-                )
+    more_button_xpaths = [
+        './/button[contains(text(),"더 보기")]',
+        './/div[contains(text(),"더 보기") and @role="button"]',
+        './/button[contains(normalize-space(), "see more")]'
+    ]
+    for xpath in more_button_xpaths:
+        try:
+            more_button = article_element.find_element(By.XPATH, xpath)
+            if more_button.is_displayed() and more_button.is_enabled():
+                driver_for_js_click.execute_script("arguments[0].click();", more_button)
+                time.sleep(0.5) 
+                logger.debug(f"'더 보기' 버튼 클릭 성공 (XPath: {xpath})")
+                break 
+        except NoSuchElementException:
+            pass
+        except Exception as e_click_more:
+            logger.warning(f"'더 보기' 버튼 클릭 중 예외 (XPath: {xpath}): {e_click_more}")
 
-# ──────────────────────────────
-# 메인 크롤러 함수
-# ──────────────────────────────
-@time_logger # 데코레이터는 이제 이 함수 위에 정의된 time_logger를 참조합니다.
-def fetch_toss_comments(company_name: str, max_scroll=5):
+    content_selectors = [
+        'div[class*="CommentText__Ellipsis"]', # 새로운 UI 클래스 가능성
+        'span[class*="Comment__CommentText-sc-"]', # styled-component 클래스
+        'div[class*="comment-content"] span', 
+        'div[class*="comment-content"]',    
+        'span[class*="_60z0ev1"]',        
+        'div[data-testid="comment-body"]'
+    ]
+    for selector in content_selectors:
+        try:
+            content_el = article_element.find_element(By.CSS_SELECTOR, selector)
+            content_html = content_el.get_attribute("innerHTML")
+            content_text = re.sub(r'<br\s*/?>', '\n', content_html).strip()
+            content_text = re.sub(r'<img[^>]*alt="([^"]*)"[^>]*>', r' \1 ', content_text)
+            content_text = re.sub(r'<[^>]+>', '', content_text).strip()
+            if content_text: break
+        except NoSuchElementException:
+            continue
+        except Exception as e_content:
+            logger.debug(f"Content parsing error with selector '{selector}': {e_content}")
+
+    like_xpaths = [
+        ".//button[contains(@aria-label, '좋아요') or contains(@aria-label, 'like')]//span[string-length(normalize-space(text())) > 0 and number(translate(text(), ',', '')) = number(translate(text(), ',', ''))]",
+        './/div[text()="좋아요 버튼"]/preceding-sibling::span[1]', 
+        "(.//div[contains(@class, 'Emotion___')]/span)[1]" # 감정 표현 아이콘 옆 숫자 (더 일반적)
+    ]
+    likes_text_found = "0"
+    for xpath in like_xpaths:
+        try:
+            like_els = article_element.find_elements(By.XPATH, xpath)
+            for el in reversed(like_els): # 숫자가 마지막에 오는 경우가 많음
+                txt = el.text.strip().replace(',', '') # 쉼표 제거
+                if txt.isdigit():
+                    likes_text_found = txt
+                    break
+            if likes_text_found != "0": break 
+        except Exception as e_likes:
+             logger.debug(f"Likes parsing error with XPath '{xpath}': {e_likes}")
+    
+    likes_count = int(likes_text_found or 0)
+
+    return dict(author=author, written_at=written_at_dt, content=content_text, likes=likes_count)
+
+
+@time_logger
+def fetch_toss_comments(company_name: str, max_scroll: int = 8, max_comments: int = 150) -> Tuple[Optional[str], Optional[str], List[Dict[str, any]]]:
     driver = None
-    try:
-        driver = get_driver() # WebDriver 인스턴스 가져오기
-        if driver is None: # get_driver가 None을 반환할 경우 처리
-            logger.error("WebDriver를 가져오지 못했습니다.")
-            return company_name, None, []
+    crawled_comments: List[Dict[str, any]] = []
+    actual_company_name_on_page = company_name
+    actual_stock_code_on_page = None
 
-        logger.info(f"Toss 투자 커뮤니티 댓글 크롤링 시작: {company_name}")
+    try:
+        driver = get_driver()
+        if not driver:
+            logger.critical("WebDriver instance could not be created. Crawler cannot proceed.")
+            return actual_company_name_on_page, actual_stock_code_on_page, []
+
+        logger.info(f"Toss investing community comment crawling started for: '{company_name}'")
         driver.get("https://tossinvest.com/")
         
-        # 검색 아이콘 클릭 (더 명확한 selector로 변경)
         search_button_locators = [
-            (By.CSS_SELECTOR, "button[aria-label='검색']"), 
-            (By.CLASS_NAME, "u09klc0") # 이전 selector 유지 (폴백)
+            (By.CSS_SELECTOR, "button[aria-label='검색'], button[aria-label='Search']"),
+            (By.XPATH, "//button[.//img[contains(@class, 'search-icon')] or .//span[text()='검색']]") # 아이콘 클래스 또는 텍스트
         ]
-        search_button_clicked = False
-        for locator in search_button_locators:
-            if click_element(driver, locator, timeout=5, retries=1):
-                search_button_clicked = True
-                break
-        if not search_button_clicked:
-            logger.error("토스 증권 검색 아이콘 클릭 실패")
-            return company_name, None, []
+        if not any(robust_click_element(driver, loc, timeout=10) for loc in search_button_locators):
+            logger.error("Failed to find or click the search icon on Toss Securities.")
+            return actual_company_name_on_page, actual_stock_code_on_page, crawled_comments
 
-        # 검색 입력창 (더 명확한 selector로 변경)
-        search_input_locator = (By.CSS_SELECTOR, "input[placeholder='종목 또는 별명을 검색해보세요']")
+        search_input_locator = (By.CSS_SELECTOR, "input[placeholder*='종목 또는 별명'], input[placeholder*='stock or ticker']")
         try:
-            inp = WebDriverWait(driver, 10).until(
-                EC.visibility_of_element_located(search_input_locator)
-            )
-            inp.clear()
-            inp.send_keys(company_name)
-            time.sleep(0.7) # 검색어 입력 후 자동완성 또는 결과 로딩 대기
-            inp.send_keys(Keys.RETURN)
-        except Exception as e:
-            logger.error(f"검색어 입력 실패 ({company_name}): {e}")
-            return company_name, None, []
-            
-        # 종목 상세 페이지로 이동했는지 확인 (커뮤니티 탭 존재 여부로 판단)
-        try:
-            WebDriverWait(driver, 20).until( # 시간 증가
-                EC.presence_of_element_located((By.XPATH, '//a[contains(@href, "/community") and (contains(text(),"커뮤니티") or .//span[contains(text(),"커뮤니티")])] | //button[contains(text(),"커뮤니티")]'))
-            )
-            logger.info(f"종목 상세 페이지 로드 확인: {company_name}")
-        except Exception as e:
-            logger.error(f"종목 상세 페이지 로드 실패 또는 커뮤니티 탭 찾기 실패 ({company_name}): {driver.current_url} - {e}")
-            # 현재 URL이 검색 결과 페이지인지 확인하여 첫번째 결과 클릭 시도 (선택적)
-            return company_name, None, []
-
-        current_url = driver.current_url
-        stock_code_found = extract_stock_code(current_url)
+            search_input_el = WebDriverWait(driver, 10).until(EC.visibility_of_element_located(search_input_locator))
+            search_input_el.clear()
+            search_input_el.send_keys(company_name)
+            time.sleep(1.2) # Wait for autocomplete/search results
+            search_input_el.send_keys(Keys.ENTER)
+            logger.info(f"Search term '{company_name}' submitted.")
+        except Exception as e_input:
+            logger.error(f"Error during search input for '{company_name}': {e_input}")
+            return actual_company_name_on_page, actual_stock_code_on_page, crawled_comments
         
-        company_name_found_on_page = company_name # 기본값
         try:
-            # 회사명 확인 (더 안정적인 방법 필요)
-            # 예시: header 태그 내의 h1 또는 특정 data-testid 속성 사용
-            # name_element = WebDriverWait(driver, 5).until(EC.visibility_of_element_located((By.CSS_SELECTOR, "header h1"))) 
-            # company_name_found_on_page = name_element.text.strip()
-            # logger.info(f"크롤러에서 확인된 회사명: {company_name_found_on_page}")
-            pass # 이 부분은 실제 페이지 구조에 맞춰 정확한 selector를 찾아야 합니다.
-        except Exception:
-            logger.warning(f"크롤러에서 정확한 회사명 확인 실패. 입력된 '{company_name}' 사용.")
+            WebDriverWait(driver, 25).until(lambda d: "/stock/" in d.current_url or "/stocks/" in d.current_url)
+            current_url = driver.current_url
+            logger.info(f"Navigated to stock related page: {current_url}")
+            
+            actual_stock_code_on_page = extract_stock_code_from_url(current_url)
+            
+            name_locators = ["h1[class*='name']", "div[class*='NameContainer'] > strong", "span[class*='stock__name']"]
+            for selector in name_locators:
+                try:
+                    name_element = WebDriverWait(driver, 3).until(EC.visibility_of_element_located((By.CSS_SELECTOR, selector))) # 짧은 대기
+                    actual_company_name_on_page = name_element.text.strip()
+                    if actual_company_name_on_page and actual_company_name_on_page != company_name:
+                        logger.info(f"Actual company name found on page: '{actual_company_name_on_page}' (Searched for: '{company_name}')")
+                    break
+                except: continue
+            
+            if not actual_stock_code_on_page:
+                logger.warning(f"Could not extract stock code from URL '{current_url}' after searching for '{company_name}'. Attempting to click first search result.")
+                first_result_xpath = "(//a[contains(@href, '/stock/') and .//strong[contains(text(),'"+company_name[:3]+"')] ])[1]" # 더 정확한 첫번째 결과 xpath
+                try:
+                    if robust_click_element(driver, (By.XPATH, first_result_xpath), timeout=10):
+                        WebDriverWait(driver, 15).until(lambda d: extract_stock_code_from_url(d.current_url) is not None)
+                        current_url = driver.current_url
+                        actual_stock_code_on_page = extract_stock_code_from_url(current_url)
+                        logger.info(f"Clicked first search result. New URL: {current_url}, Stock Code: {actual_stock_code_on_page}")
+                    else:
+                        raise Exception("Failed to click first search result or extract code after click.")
+                except Exception as e_first_click:
+                    logger.error(f"Failed to navigate to stock detail page for '{company_name}': {e_first_click}")
+                    return actual_company_name_on_page, None, crawled_comments
+            
+            if not actual_stock_code_on_page:
+                logger.error(f"Unable to determine stock code for '{company_name}' after search and potential first result click.")
+                return actual_company_name_on_page, None, crawled_comments
 
+        except TimeoutException:
+            logger.error(f"Timeout while navigating to stock detail page for '{company_name}'. Current URL: {driver.current_url}")
+            return actual_company_name_on_page, actual_stock_code_on_page, crawled_comments
 
-        if not stock_code_found:
-            logger.error(f"URL에서 종목 코드를 추출하지 못했습니다: {current_url} (회사명: {company_name})")
-            return company_name_found_on_page, None, []
-
-        # 커뮤니티 탭 URL로 직접 이동
-        community_url = f"https://tossinvest.com/stock/{stock_code_found}/community"
-        logger.info(f"커뮤니티 URL로 이동: {community_url}")
+        community_url = f"https://tossinvest.com/stock/{actual_stock_code_on_page}/community"
+        logger.info(f"Navigating to community page: {community_url}")
         driver.get(community_url)
-        
+
         try:
-            WebDriverWait(driver, 15).until(
-                 EC.presence_of_element_located((By.XPATH, '//article[contains(@class,"comment")] | //div[contains(text(),"아직 작성된 게시글이 없어요")] | //div[contains(text(),"로그인하고")]'))
+            WebDriverWait(driver, 25).until(
+                EC.presence_of_element_located((By.XPATH, '//div[contains(@class, "virtual-scroll-container")] | //article[contains(@class,"comment")] | //div[contains(text(),"아직 작성된 게시글이 없어요")] | //div[contains(text(),"No posts yet")]'))
             )
-        except Exception as e:
-            logger.error(f"커뮤니티 페이지 로드 실패 ({stock_code_found}): {e}")
-            return company_name_found_on_page, stock_code_found, []
-            
-        # "아직 작성된 게시글이 없어요" 또는 "로그인하고" 메시지 확인
-        if driver.find_elements(By.XPATH, '//div[contains(text(),"아직 작성된 게시글이 없어요")] | //div[contains(text(),"로그인하고")]'):
-            logger.info(f"'{company_name_found_on_page}' 종목의 토스 커뮤니티에 게시글이 없거나 로그인이 필요합니다.")
-            return company_name_found_on_page, stock_code_found, []
+            logger.info(f"Community page loaded for {actual_stock_code_on_page}.")
+        except TimeoutException:
+            logger.error(f"Timeout loading community page content for {actual_stock_code_on_page}. URL: {driver.current_url}")
+            return actual_company_name_on_page, actual_stock_code_on_page, crawled_comments
 
-        # 스크롤하여 댓글 로드
+        no_posts_xpaths = ['//div[contains(text(),"아직 작성된 게시글이 없어요")]', '//div[contains(text(),"No posts yet")]']
+        if any(driver.find_elements(By.XPATH, xpath) for xpath in no_posts_xpaths):
+            logger.info(f"No community posts found for '{actual_company_name_on_page}' ({actual_stock_code_on_page}).")
+            return actual_company_name_on_page, actual_stock_code_on_page, crawled_comments
+        
+        last_height = driver.execute_script("return document.body.scrollHeight")
+        parsed_comment_unique_ids = set() # 댓글 고유 ID (작성자+시간+내용 앞부분) 저장
+
         for i in range(max_scroll):
-            logger.info(f"Scrolling down ({i+1}/{max_scroll}) for {stock_code_found}")
+            if len(crawled_comments) >= max_comments:
+                logger.info(f"Reached max comments limit ({max_comments}). Stopping scroll.")
+                break
+
             driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
-            time.sleep(1.5) # 댓글 로딩 대기 시간 증가
+            time.sleep(2.8) # Increased wait time for content loading
 
-        # 댓글 article 요소 찾기
-        article_elements = driver.find_elements(By.XPATH, '//article[contains(@class,"comment")]')
-        
-        comments = []
-        if not article_elements:
-             logger.info(f"스크롤 후에도 댓글 요소를 찾지 못했습니다: {company_name_found_on_page} ({stock_code_found}).")
-        
-        logger.info(f"{len(article_elements)}개의 댓글 article 요소를 찾았습니다. 파싱 시작...")
-        for art_idx, art_element in enumerate(article_elements):
-            try:
-                comment_dict = _parse_article(art_element) # WebElement 전달
-                comment_dict['stock_code'] = stock_code_found # 일관성을 위해 추가
-                comment_dict['source'] = 'TossSecuritiesCommunity' # 출처 명시
-                comments.append(comment_dict)
-            except Exception as e_parse:
-                logger.error(f"댓글 파싱 중 오류 (인덱스 {art_idx}): {e_parse}", exc_info=False) # exc_info=True로 하면 전체 스택 트레이스 로깅
-                continue
-        
-        logger.info(f"총 {len(comments)}개의 댓글 파싱 완료: {company_name_found_on_page} ({stock_code_found})")
-        return company_name_found_on_page, stock_code_found, comments
+            new_height = driver.execute_script("return document.body.scrollHeight")
+            if new_height == last_height and i > 1: # 스크롤 변화가 없으면 (두 번 이상 시도 후)
+                logger.info("No change in scroll height, assuming all comments loaded.")
+                break
+            last_height = new_height
+            
+            article_elements = driver.find_elements(By.XPATH, '//article[contains(@class,"comment-item--") or contains(@class, "CommentItem__CommentArticle")]') # 더욱 구체적인 클래스 타겟팅
+            if not article_elements: # 대체 선택자
+                 article_elements = driver.find_elements(By.XPATH, '//article[contains(@class,"comment")]')
 
+
+            logger.debug(f"Scroll {i+1}/{max_scroll}: Found {len(article_elements)} article elements. Total collected: {len(crawled_comments)}")
+            
+            newly_added_this_scroll = 0
+            for art_el in article_elements:
+                if len(crawled_comments) >= max_comments: break
+                try:
+                    comment_data = _parse_single_toss_comment(art_el, driver)
+                    # 더 나은 중복 체크: 작성자, 시간(분단위), 내용 첫 20자로 해시 또는 튜플 만들어 사용
+                    comment_id_str = f"{comment_data['author']}_{comment_data['written_at'].strftime('%Y%m%d%H%M')}_{comment_data['content'][:30]}"
+                    if comment_data.get("content") and comment_id_str not in parsed_comment_unique_ids:
+                        comment_data['stock_code'] = actual_stock_code_on_page
+                        comment_data['source'] = 'TossSecuritiesCommunity'
+                        crawled_comments.append(comment_data)
+                        parsed_comment_unique_ids.add(comment_id_str)
+                        newly_added_this_scroll +=1
+                except Exception as e_parse_loop:
+                    logger.warning(f"Error parsing individual comment: {e_parse_loop}", exc_info=False)
+            
+            if newly_added_this_scroll == 0 and i > 2: # 3번 연속 새 댓글 없으면 중단
+                logger.info("No new comments added in the last few scrolls. Stopping.")
+                break
+        
+        logger.info(f"Crawling and parsing finished. Total {len(crawled_comments)} comments collected for: {actual_company_name_on_page} ({actual_stock_code_on_page})")
+        return actual_company_name_on_page, actual_stock_code_on_page, crawled_comments
+
+    except WebDriverException as e_wd:
+        logger.error(f"WebDriverException during crawling for '{company_name}': {e_wd}", exc_info=True)
+        return actual_company_name_on_page, actual_stock_code_on_page, crawled_comments
+    except NotImplementedError as nie:
+        logger.critical(f"WebDriver load failure (NotImplementedError): {nie}. Check 'utils.driver_pool.get_driver()'.")
+        return actual_company_name_on_page, actual_stock_code_on_page, []
     except Exception as e_main:
-        logger.error(f"fetch_toss_comments 함수 실행 중 주요 오류 발생 ({company_name}): {e_main}", exc_info=True)
-        return company_name, None, []
+        logger.error(f"Unexpected major error in fetch_toss_comments for '{company_name}': {e_main}", exc_info=True)
+        return actual_company_name_on_page, actual_stock_code_on_page, crawled_comments
     finally:
         if driver:
-            # driver_pool을 사용한다면 반환 로직 (예: driver_pool.release_driver(driver))
-            # 단일 드라이버 사용 시에는 quit()
-            try:
-                driver.quit() 
-                logger.info("WebDriver 종료됨.")
-            except Exception as e_quit:
-                logger.error(f"WebDriver 종료 중 오류: {e_quit}")
+            # utils.driver_pool.py의 atexit 핸들러가 종료를 담당하므로, 여기서는 quit() 호출 안 함
+            logger.info(f"Finished using WebDriver for '{company_name}'. Driver instance managed by driver_pool.")
+            pass
