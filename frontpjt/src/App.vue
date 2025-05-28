@@ -1,32 +1,28 @@
 <template>
   <header>
-    <RouterLink to="/" class="logo-link">
-      <img
-        alt="Joomak logo"
-        class="logo"
-        src="@/assets/logo.svg"
-        width="125"
-        height="125"
-      />
+    <RouterLink to="/" class="logo-link" @click="handleLogoOrHomeClick">
+      <img alt="Joomak logo" class="logo" src="@/assets/logo.svg" width="125" height="125" />
     </RouterLink>
 
     <div class="wrapper">
       <h1 class="site-title">주막에 오신 것을 환영합니다!</h1>
-
       <nav>
-        <RouterLink to="/">Home</RouterLink>
-        <RouterLink :to="{ name: 'DashBoardView' }">대시보드</RouterLink>
-        <RouterLink :to="{ name: 'MarketplaceView' }">마켓플레이스</RouterLink>
-        <RouterLink :to="{ name: 'Commodities' }">기초자산</RouterLink>
-        <RouterLink :to="{ name: 'StrategyListView' }">나의 전략</RouterLink>
-        <RouterLink :to="{ name: 'FinancialProductListView' }">예적금 비교</RouterLink>
+        <RouterLink to="/" @click="handleLogoOrHomeClick">Home</RouterLink>
+        <RouterLink :to="{ name: 'DashBoardView' }" @click="handleNavClick">대시보드</RouterLink>
+        <RouterLink :to="{ name: 'MarketplaceView' }" @click="handleNavClick">마켓플레이스</RouterLink>
+        <RouterLink :to="{ name: 'Commodities' }" @click="handleNavClick">기초자산</RouterLink>
+        <RouterLink :to="{ name: 'RealtimeStockAnalysis' }" @click="handleNavClick">실시간 종목 분석</RouterLink>
+        <RouterLink :to="{ name: 'StrategyListView' }" @click="handleNavClick">나의 전략</RouterLink>
+        <RouterLink :to="{ name: 'FinancialProductListView' }" @click="handleNavClick">예적금 비교</RouterLink>
+        <RouterLink :to="{ name: 'bank-locations' }" @click="handleNavClick">주변 은행 찾기</RouterLink>
+        <RouterLink :to="{ name: 'communityHome' }" @click="handleNavClick">커뮤니티</RouterLink>
 
         <template v-if="authStore.isAuthenticated">
-          <RouterLink :to="{ name: 'profile' }" class="ms-2">프로필</RouterLink>
+          <RouterLink :to="{ name: 'profile' }" class="ms-2" @click="handleNavClick">프로필</RouterLink>
           <a href="#" @click.prevent="handleLogout" class="ms-2 nav-link-button">로그아웃</a>
         </template>
         <template v-else>
-          <RouterLink :to="{ name: 'LoginView' }" class="ms-2 nav-link-button">로그인</RouterLink>
+          <RouterLink :to="{ name: 'LoginView' }" class="ms-2 nav-link-button" @click="handleNavClick">로그인</RouterLink>
         </template>
       </nav>
     </div>
@@ -37,23 +33,42 @@
 
 <script setup>
 import { RouterLink, RouterView, useRouter } from 'vue-router';
-// HelloWorld 임포트 제거
-// import HelloWorld from './components/HelloWorld.vue';
 import { useAuthStore } from '@/stores/authStore';
+import { useStockInsightStore } from '@/stores/stockInsightStore'; // 종목 감정 분석 스토어
 import { onMounted } from 'vue';
 
 const authStore = useAuthStore();
-const router = useRouter();
+const stockInsightStore = useStockInsightStore(); // 스토어 사용
+const router = useRouter(); 
 
 const handleLogout = () => {
   authStore.logout();
-  // authStore.logout() 내부에서 페이지 이동 처리
+  stockInsightStore.clearSelectedStockAnalysis(); // 로그아웃 시 관련 상태 초기화
+  router.push({ name: 'home' });
+};
+
+const handleLogoOrHomeClick = () => {
+  stockInsightStore.clearSelectedStockAnalysis(); // 홈/로고 클릭 시 초기화
+};
+
+const handleNavClick = (event) => {
+  // StockSentimentView로 이동하는 경우가 아니면, 선택된 종목 정보 초기화
+  const toName = event.currentTarget.getAttribute('href'); // 실제 라우트 이름을 가져오는 더 좋은 방법이 필요할 수 있음
+  if (router.resolve(toName).name !== 'StockSentimentView') {
+    stockInsightStore.clearSelectedStockAnalysis();
+  }
 };
 
 onMounted(async () => {
   if (authStore.token && !authStore.user) {
-    await authStore.fetchUser();
+    try {
+      await authStore.fetchUser();
+    } catch (error) {
+      console.error('사용자 정보 로드 실패:', error);
+    }
   }
+  // 앱 마운트 시 이전 분석 결과가 남아있을 수 있으므로 초기화
+  stockInsightStore.clearSelectedStockAnalysis();
 });
 </script>
 

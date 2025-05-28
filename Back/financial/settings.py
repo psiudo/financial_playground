@@ -24,7 +24,7 @@ SECRET_KEY = 'django-insecure-u$8$*vbj5bk^imba043t@vyic3x)g9f&3()2=(p$tji0n-j&np
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['127.0.0.1', 'localhost']
 
 
 # Application definition
@@ -41,6 +41,7 @@ INSTALLED_APPS = [
     'commodities',
     'bank_locations',
     'notifications',
+    #####################
 
     # 서드파티
     'rest_framework',
@@ -76,6 +77,10 @@ MIDDLEWARE = [
     
 ]
 
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:5173", # Vue 개발 서버 주소 (실제 사용하는 포트로 변경)
+    "http://127.0.0.1:5173", # Vue 개발 서버 주소 (실제 사용하는 포트로 변경)
+]
 
 INTERNAL_IPS = [
     '127.0.0.1',

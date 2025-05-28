@@ -1,27 +1,11 @@
-# Back/commodities/api/views.py
-from rest_framework import generics
-from django.shortcuts import get_object_or_404
-from commodities.models import Commodity
-from .serializers import CommodityListSerializer, PriceHistorySerializer
+# Back/bank_locations/api/views.py
+from rest_framework.generics import ListAPIView
+from rest_framework.permissions import AllowAny # ★ AllowAny를 import 합니다.
+from ..models import BankLocation
+from .serializers import BankLocationSerializer
 
-
-class CommodityListAPIView(generics.ListAPIView):
-    queryset = Commodity.objects.all().prefetch_related("prices")
-    serializer_class = CommodityListSerializer
-
-
-class CommodityHistoryAPIView(generics.ListAPIView):
-    serializer_class = PriceHistorySerializer
-
-    def get_queryset(self):
-        symbol = self.kwargs["symbol"]
-        # symbol = self.kwargs["symbol"].upper()  # 대소문자 구분 없이 처리하려면 주석 해제하고 위 줄 주석석
-        commodity = get_object_or_404(Commodity, symbol=symbol)
-        qs = commodity.prices.all()
-        date_from = self.request.query_params.get("from")
-        date_to   = self.request.query_params.get("to")
-        if date_from:
-            qs = qs.filter(date__gte=date_from)
-        if date_to:
-            qs = qs.filter(date__lte=date_to)
-        return qs.order_by("date")
+class BankLocationListView(ListAPIView):
+    queryset = BankLocation.objects.all()
+    serializer_class = BankLocationSerializer
+    permission_classes = [AllowAny] # ★★★ 모든 사용자의 접근을 허용합니다. ★★★
+    # pagination_class = None # 페이지네이션 없이 모든 결과를 반환하려면 주석 해제

@@ -2,7 +2,7 @@
 import { fileURLToPath, URL } from 'node:url'
 import { defineConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
-import path from 'node:path' // ★ path 모듈 import 추가
+import path from 'node:path'
 
 export default defineConfig({
   plugins: [
@@ -13,11 +13,16 @@ export default defineConfig({
       '@': fileURLToPath(new URL('./src', import.meta.url))
     }
   },
-  server: {
+  server: { // ★★★ server 객체 확인 ★★★
+    proxy: { // ★★★ 이 부분이 정확히 있는지 확인 ★★★
+      '/api': { 
+        target: 'http://localhost:8000', // 실제 Django 백엔드 서버 주소
+        changeOrigin: true,
+      }
+    },
     fs: {
       allow: [
-        // 현재 vite.config.js 파일의 위치(frontpjt)를 기준으로 상위 디렉토리(financial_playground)를 허용
-        path.resolve(__dirname, '..'), 
+        path.resolve(__dirname, '..'),
       ]
     }
   }
